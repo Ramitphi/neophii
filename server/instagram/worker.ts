@@ -250,7 +250,7 @@ export function createInstagramWorker(deps: WorkerDeps) {
   async function analyse(memory: Memory, ingest: IngestKind): Promise<MemoryAnalysis | null> {
     const input: Memory = ingest === 'full_media' ? { ...memory, ingest } : { ...memory, ingest, media: null };
     const raw = await deps.gemini.analyzeMemory(input);
-    return raw ? guardAnalysis(raw, { ingest, note: memory.note }) : null;
+    return raw ? guardAnalysis(raw, { ingest, note: memory.note, caption: memory.caption ?? null }) : null;
   }
 
   async function handleAnalysis(job: InstagramJob, final: boolean): Promise<JobResult> {

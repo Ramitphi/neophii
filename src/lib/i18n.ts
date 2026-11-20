@@ -42,6 +42,9 @@ export interface StringsTable {
   noNoteAdded: string;
   aiSuggestionPill: string;
   notSureNoEvidence: string;
+  keyPointsTitle: string;
+  aiWhatThisIs: string;
+  captionSkipped: string;
   linkOnlyMessage: string;
   unsupportedMessage: string;
   ledgerTitle: string;
@@ -119,6 +122,9 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     noNoteAdded: "You didn't add a note.",
     aiSuggestionPill: 'AI suggestion',
     notSureNoEvidence: 'Not sure: no evidence found',
+    keyPointsTitle: 'Key points',
+    aiWhatThisIs: 'AI · what this is',
+    captionSkipped: 'Caption skipped:',
     linkOnlyMessage: 'I only saw the link and caption',
     unsupportedMessage:
       'I could not read this one. Your link and note are kept; upload your own copy to add more.',
@@ -196,6 +202,9 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     noNoteAdded: 'Aapne koi note nahi likha.',
     aiSuggestionPill: 'AI suggestion',
     notSureNoEvidence: 'Pakka nahi: koi saboot nahi mila',
+    keyPointsTitle: 'Khaas baatein',
+    aiWhatThisIs: 'AI · yeh kya hai',
+    captionSkipped: 'Caption chhoda:',
     linkOnlyMessage: 'Maine sirf link aur caption dekha',
     unsupportedMessage:
       'Ise padha nahi ja saka. Aapka link aur note safe hai; aur dekhne ke liye apni copy upload karein.',
@@ -273,6 +282,9 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     noNoteAdded: 'आपने कोई नोट नहीं लिखा।',
     aiSuggestionPill: 'AI सुझाव',
     notSureNoEvidence: 'पक्का नहीं: कोई प्रमाण नहीं मिला',
+    keyPointsTitle: 'मुख्य बातें',
+    aiWhatThisIs: 'AI · यह क्या है',
+    captionSkipped: 'कैप्शन छोड़ा:',
     linkOnlyMessage: 'मैंने केवल लिंक और कैप्शन देखा',
     unsupportedMessage:
       'इसे पढ़ा नहीं जा सका। आपका लिंक और नोट सुरक्षित है; अधिक जानकारी के लिए अपनी कॉपी अपलोड करें।',

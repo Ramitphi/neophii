@@ -320,7 +320,7 @@ export function createApiRouter(deps: ApiDeps): express.Router {
           try {
             const analysis = await deps.gemini.analyzeMemory(memory);
             const guarded = analysis
-              ? guardAnalysis(analysis, { ingest: memory.ingest, note: memory.note })
+              ? guardAnalysis(analysis, { ingest: memory.ingest, note: memory.note, caption: memory.caption ?? null })
               : memory.ingest === 'unsupported'
                 ? guardAnalysis({}, { ingest: 'unsupported', note: memory.note })
                 : null;

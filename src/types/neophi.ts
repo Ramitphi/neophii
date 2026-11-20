@@ -134,6 +134,27 @@ export interface TypeDetail {
   evidence: string[];
 }
 
+/** How much the caption says about the item itself. `none` when there is no caption. */
+export const CAPTION_USEFULNESS = ['informative', 'mixed', 'noise', 'none'] as const;
+export type CaptionUsefulness = (typeof CAPTION_USEFULNESS)[number];
+
+export interface CaptionSignal {
+  usefulness: CaptionUsefulness;
+  /** Short pieces copied from the caption that carry real information. */
+  useful_parts: string[];
+  /** One short line on what was ignored (hashtags, mentions, hooks), or empty. */
+  ignored_reason: string;
+}
+
+export const KEY_POINT_KINDS = ['step', 'item', 'place', 'price', 'tool', 'date', 'fact'] as const;
+export type KeyPointKind = (typeof KEY_POINT_KINDS)[number];
+
+export interface KeyPoint {
+  kind: KeyPointKind;
+  text: string;
+  evidence: string[];
+}
+
 export type NoteGroundingStatus =
   | 'grounded'
   | 'not_sure'
@@ -164,6 +185,10 @@ export interface MemoryAnalysis {
   /** True when the type has no evidence or a confidence under the not-sure threshold. */
   reel_type_uncertain?: boolean;
   type_details?: TypeDetail[];
+  caption_signal?: CaptionSignal;
+  /** One line saying what the item is. Never why the person saved it. */
+  what_this_is?: string;
+  key_points?: KeyPoint[];
 }
 
 export interface MemoryMedia {

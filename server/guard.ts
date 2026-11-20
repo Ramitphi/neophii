@@ -1,5 +1,9 @@
 import type {
   ActionableEntity,
+  CaptionSignal,
+  CaptionUsefulness,
+  KeyPoint,
+  KeyPointKind,
   BBox,
   EntityType,
   EvidenceItem,
@@ -16,7 +20,7 @@ import type {
   TypeDetail,
   TypeDetailField,
 } from '../src/types/neophi.js';
-import { REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
+import { CAPTION_USEFULNESS, KEY_POINT_KINDS, REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
 
 export const NOT_SURE_CONFIDENCE_THRESHOLD = 0.45;
 
@@ -86,6 +90,45 @@ function clampBBox(raw: unknown): BBox | null {
 export interface GuardMemoryContext {
   ingest: IngestKind;
   note: string | null;
+  /** The caption as saved; used to check that "useful parts" really come from it. */
+  caption?: string | null;
+}
+
+const VALID_USEFULNESS = new Set<CaptionUsefulness>(CAPTION_USEFULNESS);
+const VALID_KEY_POINT_KINDS = new Set<KeyPointKind>(KEY_POINT_KINDS);
+export const MAX_KEY_POINTS = 6;
+const MAX_LINE = 160;
+/** A "what this is" line must describe the item, not guess the person's reason. */
+const REASON_GUESS = /\b(you|user|they|the person)\b[^.]{0,40}\b(saved|save|want|wants|wanted|plan|plans|planning|because|intend|might like)\b/i;
+
+const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+const clip = (s: string) => (s.length > MAX_LINE ? `${s.slice(0, MAX_LINE - 1).trimEnd()}…` : s);
+
+function guardCaptionSignal(raw: unknown, caption: string | null | undefined): CaptionSignal {
+  const text = typeof caption === 'string' ? caption : '';
+  if (!text.trim()) return { usefulness: 'none', useful_parts: [], ignored_reason: '' };
+  const rec = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const rawUse = typeof rec.usefulness === 'string' ? rec.usefulness : '';
+  let usefulness: CaptionUsefulness = VALID_USEFULNESS.has(rawUse as CaptionUsefulness)
+    ? (rawUse as CaptionUsefulness)
+    : 'mixed';
+  if (usefulness === 'none') usefulness = 'noise';
+  const hay = squash(text);
+  const parts = Array.isArray(rec.useful_parts) ? rec.useful_parts : [];
+  const useful_parts: string[] = [];
+  if (usefulness !== 'noise') {
+    for (const p of parts) {
+      if (typeof p !== 'string') continue;
+      const part = p.trim();
+      // Only pieces that are really in the caption; nothing rewritten or added.
+      if (!part || part.length > MAX_LINE || !hay.includes(squash(part))) continue;
+      if (useful_parts.some((u) => squash(u) === squash(part))) continue;
+      useful_parts.push(part);
+      if (useful_parts.length >= 5) break;
+    }
+  }
+  const reason = typeof rec.ignored_reason === 'string' ? clip(rec.ignored_reason.trim()) : '';
+  return { usefulness, useful_parts, ignored_reason: reason };
 }
 
 /**
@@ -111,6 +154,9 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
       reel_type_evidence: [],
       reel_type_uncertain: true,
       type_details: [],
+      caption_signal: { usefulness: 'none', useful_parts: [], ignored_reason: '' },
+      what_this_is: '',
+      key_points: [],
       note_grounding: hasNote
         ? {
             status: 'not_attempted',
@@ -126,6 +172,10 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
   }
 
   const input = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+
+  // 0. Caption signal. A noise caption is not evidence for anything.
+  const caption_signal = guardCaptionSignal(input.caption_signal, memory.caption);
+  const captionIsNoise = caption_signal.usefulness === 'noise' || caption_signal.usefulness === 'none';
 
   // 1. Validate & deduplicate evidence
   const rawEvidence = Array.isArray(input.evidence) ? input.evidence : [];
@@ -143,6 +193,9 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     if (!id || !ref || !VALID_EVIDENCE_KINDS.has(kind)) continue;
     if (seenIds.has(id)) continue;
     seenIds.add(id);
+
+    // Rule: a caption judged to be noise (or no caption at all) cannot be cited.
+    if (kind === 'caption' && captionIsNoise && memory.caption !== undefined) continue;
 
     // Rule: link_metadata keeps only caption and note evidence, drops frame and quote.
     if (memory.ingest === 'link_metadata' && (kind === 'frame' || kind === 'quote')) {
@@ -297,6 +350,26 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     type_details.push({ field: field as TypeDetailField, value, evidence: surviving });
   }
 
+  // 5c. One line on what this is, and short key points. Points are facts, so they need surviving evidence.
+  const rawWhat = typeof input.what_this_is === 'string' ? input.what_this_is.trim() : '';
+  const what_this_is = rawWhat && !REASON_GUESS.test(rawWhat) ? clip(rawWhat) : '';
+
+  const rawPoints = Array.isArray(input.key_points) ? input.key_points : [];
+  const key_points: KeyPoint[] = [];
+  for (const item of rawPoints) {
+    if (key_points.length >= MAX_KEY_POINTS) break;
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const kindRaw = typeof rec.kind === 'string' ? rec.kind : 'fact';
+    const kind: KeyPointKind = VALID_KEY_POINT_KINDS.has(kindRaw as KeyPointKind) ? (kindRaw as KeyPointKind) : 'fact';
+    const text = typeof rec.text === 'string' ? rec.text.trim() : '';
+    if (!text || REASON_GUESS.test(text)) continue;
+    const { surviving } = filterEvidenceRefs(rec.evidence);
+    if (surviving.length === 0) continue;
+    if (key_points.some((k) => squash(k.text) === squash(text))) continue;
+    key_points.push({ kind, text: clip(text), evidence: surviving });
+  }
+
   // 6. Visible text & transcript (dropped for link_metadata since no media)
   const visible_text =
     memory.ingest === 'link_metadata'
@@ -363,5 +436,8 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     reel_type_evidence,
     reel_type_uncertain,
     type_details,
+    caption_signal,
+    what_this_is,
+    key_points,
   };
 }

@@ -280,7 +280,31 @@ export function MemoryPage({
 
         {memory.ingest !== 'unsupported' && memory.analysis && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+            {memory.analysis.what_this_is && (
+              <p style={{ margin: 0 }}>
+                <span className="pill pill-ai">{t.aiWhatThisIs}</span> {memory.analysis.what_this_is}
+              </p>
+            )}
             {memory.analysis.source_summary && <p style={{ margin: 0 }}>{memory.analysis.source_summary}</p>}
+            {(memory.analysis.key_points?.length ?? 0) > 0 && (
+              <div className="key-points">
+                <h3 className="key-points-title">
+                  {t.keyPointsTitle} <span className="pill pill-ai">AI</span>
+                </h3>
+                <ul>
+                  {memory.analysis.key_points!.map((p, idx) => (
+                    <li key={idx}>
+                      <span className="key-point-kind">{p.kind}</span> {p.text} {renderEvidenceChips(p.evidence)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {memory.analysis.caption_signal?.usefulness === 'noise' && memory.analysis.caption_signal.ignored_reason && (
+              <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+                {t.captionSkipped} {memory.analysis.caption_signal.ignored_reason}
+              </p>
+            )}
             {memory.analysis.observed_objects.map((obj, idx) => (
               <div
                 key={idx}

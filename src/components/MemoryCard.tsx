@@ -32,6 +32,7 @@ import { popAt, popFor, popVars, type Pop } from '../landing/pop';
 import { LANDING } from '../landing/strings';
 import { FEED_STRINGS } from '../pages/feedStrings';
 import type { Category, LanguageCode, Memory, MemoryPurpose, Platform } from '../types/neophi';
+import { aiLine as describeForAi } from '../lib/aiLine';
 import { useShellToast } from './AppShell';
 import { InstagramThumb, instagramPost } from './InstagramThumb';
 
@@ -103,6 +104,7 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
   const platform = PLATFORM[memory.platform] ?? PLATFORM.other;
   const intent = memory.analysis?.inferred_possible_intents?.[0];
   const later = laterNotes(memory);
+  const noteless = memory.note || memory.privateNoAI ? null : describeForAi(memory.analysis);
   // A source that is gone keeps its 'not available' look instead of Instagram's empty embed.
   const igPost = memory.ingest === 'unsupported' ? null : instagramPost(memory.url);
 
@@ -172,7 +174,15 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
       )}
 
       {/* The user's exact words come first, directly below the save. */}
-      {memory.note ? <p className="ph-words">{memory.note}</p> : <p className="ph-tagline">{t.noNoteAdded}</p>}
+      {memory.note ? (
+        <p className="ph-words">{memory.note}</p>
+      ) : noteless ? (
+        <p className="ph-ai-line">
+          <span className="pill pill-ai">AI</span> {noteless}
+        </p>
+      ) : (
+        <p className="ph-tagline">{t.noNoteAdded}</p>
+      )}
       {later.length > 0 && (
         <ul className="ph-more" aria-label={t.laterNotesLabel}>
           {later.map((n) => (

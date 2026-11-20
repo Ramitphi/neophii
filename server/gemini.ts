@@ -8,7 +8,7 @@ import type {
   ReelType,
   SearchQueryUnderstanding,
 } from '../src/types/neophi.js';
-import { REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
+import { CAPTION_USEFULNESS, KEY_POINT_KINDS, REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
 import { config } from './config.js';
 import { guardAnalysis } from './guard.js';
 
@@ -41,7 +41,7 @@ export const ANALYSIS_SYSTEM_INSTRUCTION = `${ANALYSIS_RULES} Classify the item:
   REEL_TYPE_RUBRIC
 )
   .map(([k, v]) => `${k} = ${v}`)
-  .join('; ')}. Give reel_type_confidence from 0 to 1 and cite the evidence ids that show the type in reel_type_evidence. Use personal_other with a low confidence when nothing fits. The user's note may tell you why they saved it, but the type describes the item itself. (8) type_details holds only facts that are stated or shown in the item, each with the field named for that type above, a short value copied or closely paraphrased from the source, and at least one evidence id. Never fill a detail from general knowledge: no prices, hours, addresses, ingredients or steps that are not in the item. Leave type_details empty rather than guess.`;
+  .join('; ')}. Give reel_type_confidence from 0 to 1 and cite the evidence ids that show the type in reel_type_evidence. Use personal_other with a low confidence when nothing fits. The user's note may tell you why they saved it, but the type describes the item itself. (8) type_details holds only facts that are stated or shown in the item, each with the field named for that type above, a short value copied or closely paraphrased from the source, and at least one evidence id. Never fill a detail from general knowledge: no prices, hours, addresses, ingredients or steps that are not in the item. Leave type_details empty rather than guess. Judge the caption: (9) Set caption_signal.usefulness to informative when the caption states real facts about the item (steps, ingredients, a place with hours or price, a product with price, a tool name, a date), mixed when it has some facts among hashtags, mentions, emojis or hooks, noise when it is only hashtags, mentions, emojis, hooks like "wait for it" or "follow for more", or tags, and none when there is no caption. Copy the informative pieces word for word into useful_parts. Say in a few words what you ignored in ignored_reason. Never treat noise as meaning: hashtags and hooks are not evidence of what the item shows, and a noise caption must not be cited. Describe the item: (10) The user's note is optional and many saves have none; the reading must stand on its own. what_this_is is one short line saying what the item is and what it offers (for example "A 20-minute dal tadka recipe with a garlic tadka"). Never say or guess why the person saved it or what they plan to do. (11) key_points: up to 6 short, crisp points with the substance someone would come back for, each a few words, each with a kind (step, item, place, price, tool, date, fact) and evidence ids. Order steps as given. Only facts from the item; if the item has nothing concrete, return no key points.`;
 
 const BBOX_SCHEMA = {
   type: Type.OBJECT,
@@ -132,6 +132,30 @@ const ANALYSIS_RESPONSE_SCHEMA = {
         propertyOrdering: ['field', 'value', 'evidence'],
       },
     },
+    caption_signal: {
+      type: Type.OBJECT,
+      properties: {
+        usefulness: { type: Type.STRING, format: 'enum', enum: [...CAPTION_USEFULNESS] },
+        useful_parts: { type: Type.ARRAY, items: { type: Type.STRING } },
+        ignored_reason: { type: Type.STRING },
+      },
+      required: ['usefulness', 'useful_parts', 'ignored_reason'],
+      propertyOrdering: ['usefulness', 'useful_parts', 'ignored_reason'],
+    },
+    what_this_is: { type: Type.STRING },
+    key_points: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          kind: { type: Type.STRING, format: 'enum', enum: [...KEY_POINT_KINDS] },
+          text: { type: Type.STRING },
+          evidence: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ['kind', 'text', 'evidence'],
+        propertyOrdering: ['kind', 'text', 'evidence'],
+      },
+    },
     note_grounding: {
       type: Type.OBJECT,
       properties: {
@@ -157,9 +181,13 @@ const ANALYSIS_RESPONSE_SCHEMA = {
     'reel_type_confidence',
     'reel_type_evidence',
     'type_details',
+    'caption_signal',
+    'what_this_is',
+    'key_points',
   ],
   // Evidence first, then what was seen, then the classification that rests on it.
   propertyOrdering: [
+    'caption_signal',
     'evidence',
     'source_summary',
     'observed_objects',
@@ -169,6 +197,8 @@ const ANALYSIS_RESPONSE_SCHEMA = {
     'reel_type_confidence',
     'reel_type_evidence',
     'type_details',
+    'what_this_is',
+    'key_points',
     'actionable_entities',
     'inferred_possible_intents',
     'suggested_actions',
@@ -301,7 +331,7 @@ export class VertexGeminiService implements GeminiService {
     const text = response.text;
     if (!text) return null;
     const parsed = JSON.parse(text) as unknown;
-    return guardAnalysis(parsed, { ingest: memory.ingest, note: memory.note });
+    return guardAnalysis(parsed, { ingest: memory.ingest, note: memory.note, caption: memory.caption ?? null });
   }
 
   async embedText(text: string): Promise<number[] | null> {
