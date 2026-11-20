@@ -9,6 +9,13 @@
 #   deploy/staging.sh scheduler      create the Scheduler job (OIDC audience = worker URL, no path) and run it once
 #   deploy/staging.sh vertex-smoke   synthetic MP4 through Vertex with the worker identity (inline and gs://)
 #   deploy/staging.sh accept         tools/staging-acceptance.mjs against the deployed services
+#   deploy/staging.sh web-config     read-only: write the Firebase web app config to .env.production (values not printed)
+#   deploy/staging.sh auth-check     read-only: Anonymous sign-in on?, public host in authorized domains?
+#   deploy/staging.sh auth-setup     turn on Anonymous sign-in and add the public host to authorized domains
+#   deploy/staging.sh legal          read-only: /privacy, /terms, /data-deletion on the public host (status and own title)
+#   deploy/staging.sh firestore      read-only: composite indexes and TTL policies
+#   deploy/staging.sh ttl-linkcodes  turn on TTL for instagramLinkCodes.expireAt
+#   deploy/staging.sh journey        tools/cloud-journey.mjs against the public service (whole journey, no Meta)
 #   deploy/staging.sh status         counts-only worker status (needs token-creator on the scheduler account)
 #   deploy/staging.sh pair-find      gate 5: log ONE denied sender's scoped ID (prints it on this terminal only)
 #   deploy/staging.sh pair-set       gate 5: prompt (hidden) for the scoped ID and Firebase UID, set the map, logging back off
@@ -40,6 +47,7 @@ ANALYSIS_MODEL="${ANALYSIS_MODEL:-gemini-3.8-flash}"
 EMBEDDING_MODEL="${EMBEDDING_MODEL:-gemini-embedding-2}"
 GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-global}"
 META_IG_RECIPIENT_ID="${META_IG_RECIPIENT_ID:-17841449458840084}"
+INSTAGRAM_HANDLE="${INSTAGRAM_HANDLE:-yuck.pov}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -74,6 +82,7 @@ MEDIA_BUCKET: "$BUCKET"
 ANALYSIS_MODEL: "$ANALYSIS_MODEL"
 EMBEDDING_MODEL: "$EMBEDDING_MODEL"
 META_IG_RECIPIENT_ID: "$META_IG_RECIPIENT_ID"
+INSTAGRAM_HANDLE: "$INSTAGRAM_HANDLE"
 INSTAGRAM_SENDER_UID_MAP: ""
 INSTAGRAM_LOG_DENIED_SENDERS: "0"
 EOF
@@ -237,6 +246,99 @@ cmd_accept() {
     node tools/staging-acceptance.mjs --public "$purl" --worker "$wurl"
 }
 
+token() { gcloud auth print-access-token; }
+api_ok() { node -e 'const j=JSON.parse(process.argv[1]||"{}");if(j.error){console.log("FAIL  "+process.argv[2]+": "+j.error.status+" "+(j.error.message||""));process.exit(1)}' "$1" "$2"; }
+gapi() {
+  # gapi METHOD URL [JSON]: Google API call with the signed-in account, billed to the project.
+  local m="$1" u="$2" d="${3:-}"
+  if [ -n "$d" ]; then
+    curl -sS -X "$m" "$u" -H "Authorization: Bearer $(token)" -H "x-goog-user-project: $PROJECT" -H 'Content-Type: application/json' -d "$d"
+  else
+    curl -sS -X "$m" "$u" -H "Authorization: Bearer $(token)" -H "x-goog-user-project: $PROJECT"
+  fi
+}
+
+cmd_web_config() {
+  local apps app cfg
+  apps="$(gapi GET "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps")"
+  app="$(node -e 'const j=JSON.parse(process.argv[1]||"{}");const a=(j.apps||[]).filter(x=>x.state!=="DELETED");console.log(a.length?a[0].appId:"")' "$apps")"
+  [ -n "$app" ] || { echo "FAIL  no Firebase web app in $PROJECT (create one: firebase apps:create WEB neophi-web --project $PROJECT)"; exit 1; }
+  cfg="$(gapi GET "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps/${app}/config")"
+  node -e '
+    const c = JSON.parse(process.argv[1]);
+    const v = { VITE_FIREBASE_API_KEY: c.apiKey, VITE_FIREBASE_AUTH_DOMAIN: c.authDomain, VITE_FIREBASE_PROJECT_ID: c.projectId, VITE_FIREBASE_APP_ID: c.appId };
+    const missing = Object.entries(v).filter(([, x]) => !x).map(([k]) => k);
+    if (missing.length) { console.log("FAIL  config is missing " + missing.join(", ")); process.exit(1); }
+    require("fs").writeFileSync(process.argv[2], Object.entries(v).map(([k, x]) => k + "=" + x).join("\n") + "\n");
+    console.log("PASS  .env.production written with 4 values (projectId " + c.projectId + ", not printed otherwise)");
+  ' "$cfg" "$ROOT/.env.production"
+}
+
+cmd_auth_check() {
+  local purl host cfg; purl="$(service_url "$PUBLIC_SERVICE")"; host="${purl#https://}"
+  cfg="$(gapi GET "https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config")"
+  node -e '
+    const c = JSON.parse(process.argv[1]); const hosts = process.argv.slice(2).filter(Boolean);
+    if (c.error) { console.log("FAIL  auth config: " + c.error.status + " " + (c.error.message || "")); process.exit(1); }
+    const anon = !!(c.signIn && c.signIn.anonymous && c.signIn.anonymous.enabled);
+    console.log((anon ? "PASS" : "FAIL") + "  Anonymous sign-in " + (anon ? "on" : "off"));
+    const d = c.authorizedDomains || [];
+    for (const h of hosts) console.log((d.includes(h) ? "PASS" : "FAIL") + "  authorized domain " + h);
+    console.log("INFO  authorized domains: " + d.length);
+  ' "$cfg" "$host" "${PUBLIC_HOST_ALIAS:-${PUBLIC_SERVICE}-$("${G[@]}" projects describe "$PROJECT" --format='value(projectNumber)').${REGION}.run.app}"
+}
+
+cmd_auth_setup() {
+  local purl host alias cfg domains; purl="$(service_url "$PUBLIC_SERVICE")"; host="${purl#https://}"
+  alias="${PUBLIC_SERVICE}-$("${G[@]}" projects describe "$PROJECT" --format='value(projectNumber)').${REGION}.run.app"
+  api_ok "$(gapi PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config?updateMask=signIn.anonymous.enabled" \
+    '{"signIn":{"anonymous":{"enabled":true}}}')" "turn on Anonymous sign-in"
+  cfg="$(gapi GET "https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config")"
+  domains="$(node -e 'const c=JSON.parse(process.argv[1]);const d=new Set(c.authorizedDomains||[]);for(const h of process.argv.slice(2))d.add(h);console.log(JSON.stringify({authorizedDomains:[...d]}))' "$cfg" "$host" "$alias")"
+  api_ok "$(gapi PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config?updateMask=authorizedDomains" "$domains")" "authorized domains"
+  cmd_auth_check
+}
+
+cmd_legal() {
+  local purl; purl="$(service_url "$PUBLIC_SERVICE")"
+  node -e '
+    const base = process.argv[1]; let bad = 0;
+    (async () => {
+      for (const p of ["/privacy", "/terms", "/data-deletion"]) {
+        const r = await fetch(base + p, { redirect: "manual" });
+        const html = await r.text();
+        const title = (html.match(/<title>([^<]*)<\/title>/i) || [])[1] || "";
+        const ok = r.status === 200 && title && !/Remember why you saved it/.test(title) && html.length > 2000;
+        if (!ok) bad++;
+        console.log((ok ? "PASS" : "FAIL") + "  " + base + p + "  " + r.status + "  title: " + title + "  bytes: " + html.length);
+      }
+      const shell = await fetch(base + "/no-such-page-check");
+      console.log("INFO  unknown path answers " + shell.status + " (app shell)");
+      process.exit(bad ? 1 : 0);
+    })();
+  ' "$purl"
+}
+
+cmd_firestore() {
+  echo "Composite and vector indexes:"
+  "${G[@]}" firestore indexes composite list --format='value(name.segment(-3),state)'
+  echo "TTL policies:"
+  "${G[@]}" firestore fields ttls list --format='value(name.segment(-3),name.segment(-1),ttlConfig.state)'
+}
+
+cmd_ttl_linkcodes() {
+  "${G[@]}" firestore fields ttls update expireAt --collection-group=instagramLinkCodes --enable-ttl
+}
+
+cmd_journey() {
+  local purl key; purl="$(service_url "$PUBLIC_SERVICE")"
+  key="$(read_env_production | sed -n 's/^VITE_FIREBASE_API_KEY=//p')"
+  [ -n "$key" ] || { echo "Run deploy/staging.sh web-config first (.env.production has no API key)."; exit 1; }
+  META_APP_SECRET="$("${G[@]}" secrets versions access latest --secret="$SECRET_APP")" \
+  META_IG_RECIPIENT_ID="$META_IG_RECIPIENT_ID" \
+    node tools/cloud-journey.mjs --public "$purl" --api-key "$key" ${WAIT_SECONDS:+--wait-seconds "$WAIT_SECONDS"}
+}
+
 cmd_status() {
   local wurl; wurl="$(service_url "$WORKER_SERVICE")"
   WORKER_ID_TOKEN="$(gcloud auth print-identity-token --impersonate-service-account="$SCHED_SA" --audiences="$wurl" --include-email 2>/dev/null)" \
@@ -285,9 +387,16 @@ case "${1:-}" in
   scheduler) cmd_scheduler ;;
   vertex-smoke) cmd_vertex_smoke ;;
   accept) cmd_accept ;;
+  web-config) cmd_web_config ;;
+  auth-check) cmd_auth_check ;;
+  auth-setup) cmd_auth_setup ;;
+  legal) cmd_legal ;;
+  firestore) cmd_firestore ;;
+  ttl-linkcodes) cmd_ttl_linkcodes ;;
+  journey) cmd_journey ;;
   status) cmd_status ;;
   rollback) cmd_rollback ;;
   pair-find) cmd_pair_find ;;
   pair-set) cmd_pair_set ;;
-  *) sed -n '2,18p' "$0"; exit 2 ;;
+  *) sed -n '2,25p' "$0"; exit 2 ;;
 esac
