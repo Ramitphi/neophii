@@ -954,3 +954,157 @@ body {
   margin-top: 3px;
   accent-color: var(--accent);
 }
+
+/* ---------- Saving from Instagram: connect sheet and arrival notice ---------- */
+.ig-modal {
+  max-width: 480px;
+}
+.ig-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ig-modal-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.4rem;
+}
+.ig-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+.ig-steps li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.ig-steps p {
+  margin: 0 0 8px;
+}
+.ig-step-num {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  font-weight: 700;
+}
+.ig-code {
+  padding: 16px;
+  border: 2px dashed var(--accent-border);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  text-align: center;
+  font: 700 1.7rem/1.1 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+  user-select: all;
+  word-break: keep-all;
+}
+.ig-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.ig-wait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ig-dot,
+.ph-ig-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent, #6fd0c7);
+  animation: ig-pulse 1.4s ease-in-out infinite;
+}
+@keyframes ig-pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+.ig-linked {
+  display: grid;
+  gap: 10px;
+}
+.ig-linked p {
+  margin: 0;
+}
+.ig-linked-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.ig-tick {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+}
+.ig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+.ig-disconnect {
+  color: var(--text-muted);
+}
+.arrival-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(520px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.arrival-toast .arrival-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.arrival-toast button {
+  min-height: 36px;
+  padding: 4px 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ig-dot,
+  .ph-ig-dot {
+    animation: none;
+  }
+}

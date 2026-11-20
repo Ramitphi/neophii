@@ -78,6 +78,8 @@ export function createApp(overrides?: {
       gemini,
       authVerifier: overrides?.authVerifier,
       instagramWebhookConfigured: Boolean(igConfig.appSecret && igConfig.verifyToken && igConfig.recipientId),
+      instagramHandle: igConfig.handle,
+      now: overrides?.instagram?.now,
     })
   );
 

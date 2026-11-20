@@ -5,7 +5,8 @@ import { api, fetchAuthorizedMediaUrl } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
 import { laterNotes } from '../lib/notes';
 import type { StringsTable } from '../lib/i18n';
-import type { BBox, Category, EvidenceItem, Memory, MemoryChip, Project } from '../types/neophi';
+import type { BBox, Category, EvidenceItem, LanguageCode, Memory, MemoryChip, Project } from '../types/neophi';
+import { FEED_STRINGS } from './feedStrings';
 
 const CHIPS: MemoryChip[] = ['Try', 'Buy', 'Learn', 'Remix', 'Go there', 'Share with', 'Just remember'];
 
@@ -21,6 +22,7 @@ export function MemoryPage({
   projects,
   onBack,
   onRefresh,
+  lang = 'en',
   t,
 }: {
   memoryId: string;
@@ -28,6 +30,7 @@ export function MemoryPage({
   projects: Project[];
   onBack: () => void;
   onRefresh: () => void;
+  lang?: LanguageCode;
   t: StringsTable;
 }) {
   const [memory, setMemory] = useState<Memory | null>(null);
@@ -46,6 +49,29 @@ export function MemoryPage({
   useEffect(() => {
     void load(true);
   }, [memoryId]);
+
+  // A save that just arrived by Instagram DM is still filling in: its note may land seconds after the Reel and the
+  // reading takes a moment. Keep it fresh while it is on screen, without touching a note the person is typing.
+  const inFlight =
+    Boolean(memory?.dm) &&
+    (memory?.analysisStatus === 'pending' || Date.now() - new Date(memory?.createdAt ?? 0).getTime() < 3 * 60_000);
+  useEffect(() => {
+    if (!inFlight) return;
+    const timer = window.setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const next = await api.getMemory(memoryId);
+        setMemory((prev) => {
+          if (prev && prev.updatedAt === next.updatedAt) return prev;
+          setNoteDraft((draft) => (draft === (prev?.note ?? '') ? (next.note ?? '') : draft));
+          return next;
+        });
+      } catch {
+        /* a missed refresh is fine; the next one tries again */
+      }
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [inFlight, memoryId]);
 
   useEffect(() => {
     let active = true;
@@ -166,6 +192,7 @@ export function MemoryPage({
           <span>Back</span>
         </button>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {memory.dm && <span className="pill">{FEED_STRINGS[lang].ig.fromInstagram}</span>}
           {memory.sample && <span className="pill">SAMPLE</span>}
           {memory.ingest === 'unsupported' && <span className="pill">SOURCE DELETED</span>}
           {memory.ingest === 'link_metadata' && <span className="pill">LINK ONLY</span>}
@@ -481,7 +508,9 @@ export function MemoryPage({
                 {renderEvidenceChips(memory.analysis.note_grounding.evidence)}
               </div>
             )}
-            {!memory.analysis || memory.analysis.inferred_possible_intents.length === 0 ? (
+            {!memory.analysis && memory.analysisStatus === 'pending' ? (
+              <p className="muted" style={{ margin: 0 }} role="status">{FEED_STRINGS[lang].aiPending}</p>
+            ) : !memory.analysis || memory.analysis.inferred_possible_intents.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>No AI ideas for this save.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
