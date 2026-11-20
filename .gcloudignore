@@ -1,0 +1,12 @@
+# Files NOT uploaded by `gcloud builds submit` (scripts/deploy/20-build.sh).
+.gcloudignore
+.git
+.gitignore
+node_modules/
+dist/
+# No env files at all: the Firebase web values reach Cloud Build as build args.
+.env
+.env.*
+.deploy/
+*.log
+.DS_Store
