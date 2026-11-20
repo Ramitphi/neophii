@@ -25,6 +25,8 @@ export interface InstagramLinkStatus {
   handle: string | null;
   linked: boolean;
   linkedAt: string | null;
+  /** True when the server lets a signed-in person send a simulated share ("try without Instagram"). */
+  demoAvailable?: boolean;
 }
 
 export interface InstagramLinkCode {
@@ -103,6 +105,11 @@ export const api = {
   deleteMe: () => apiFetch<{ ok: boolean }>('/me', { method: 'DELETE' }),
   instagramLink: () => apiFetch<InstagramLinkStatus>('/instagram/link'),
   createInstagramLinkCode: () => apiFetch<InstagramLinkCode>('/instagram/link-code', { method: 'POST' }),
+  demoInstagramShare: (index: number, note: string) =>
+    apiFetch<{ ok: boolean; title: string; processed: boolean }>('/instagram/demo-share', {
+      method: 'POST',
+      body: JSON.stringify({ index, note }),
+    }),
   unlinkInstagram: () => apiFetch<{ ok: boolean; wasLinked: boolean }>('/instagram/link', { method: 'DELETE' }),
 };
 

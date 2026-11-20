@@ -10,6 +10,8 @@ export interface InstagramConfig {
   recipientId: string;
   /** Public username of that account (no @), shown on the site so people know where to send. Not a secret. */
   handle: string;
+  /** "Try without Instagram": lets a signed-in person send a simulated share into their own library. Off by default. */
+  demoSender: boolean;
   /** Pre-approved tester mapping: Instagram-scoped sender ID -> Firebase UID. Unknown senders are denied. */
   senderUidMap: Map<string, string>;
   /** Optional token for the documented Graph message attachment read. Sent only as a header. */
@@ -79,6 +81,7 @@ export function loadInstagramConfig(env: NodeJS.ProcessEnv = process.env): Insta
     verifyToken: env.META_VERIFY_TOKEN ?? '',
     recipientId: (env.META_IG_RECIPIENT_ID ?? '').trim(),
     handle: parseHandle(env.INSTAGRAM_HANDLE),
+    demoSender: env.INSTAGRAM_DEMO_SENDER === '1',
     senderUidMap: parseSenderUidMap(env.INSTAGRAM_SENDER_UID_MAP),
     accessToken: env.INSTAGRAM_ACCESS_TOKEN ?? '',
     graphHost: (env.META_GRAPH_HOST || 'graph.instagram.com').trim(),

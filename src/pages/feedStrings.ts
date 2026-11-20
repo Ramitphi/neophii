@@ -101,6 +101,15 @@ export interface InstagramStrings {
   dismiss: string;
   fromInstagram: string;
   manage: string;
+  demoTitle: string;
+  demoBody: string;
+  demoNote: string;
+  demoSample: string;
+  demoSamples: [string, string, string, string];
+  demoSend: string;
+  demoSending: string;
+  demoFailed: string;
+  simulated: string;
 }
 
 export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
@@ -172,6 +181,15 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'Dismiss',
       fromInstagram: 'Saved from Instagram',
       manage: 'Manage',
+      demoTitle: 'No Instagram account handy?',
+      demoBody: 'Try the same journey with a simulated Instagram share. It lands in your own library and is labelled simulated.',
+      demoNote: 'Your words (optional)',
+      demoSample: 'Sample Reel',
+      demoSamples: ['Recipe with real steps', 'Place with details', 'Only hashtags and tags', 'Home and plants'],
+      demoSend: 'Send a simulated share',
+      demoSending: 'Sending and reading it…',
+      demoFailed: 'Could not send the sample share just now.',
+      simulated: 'Simulated Instagram share',
     },
     journey: {
       nav: 'Journey',
@@ -268,6 +286,15 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'Hatao',
       fromInstagram: 'Instagram se save hua',
       manage: 'Manage karo',
+      demoTitle: 'Instagram account nahi hai?',
+      demoBody: 'Wahi journey ek simulated Instagram share se try karo. Woh tumhari apni library mein aata hai aur simulated likha hota hai.',
+      demoNote: 'Tumhare shabd (optional)',
+      demoSample: 'Sample Reel',
+      demoSamples: ['Asli steps wali recipe', 'Details wali jagah', 'Sirf hashtags aur tags', 'Ghar aur paudhe'],
+      demoSend: 'Simulated share bhejo',
+      demoSending: 'Bhej rahe hain aur padh rahe hain…',
+      demoFailed: 'Abhi sample share nahi bhej paaye.',
+      simulated: 'Simulated Instagram share',
     },
     journey: {
       nav: 'Journey',
@@ -364,6 +391,15 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'हटाएँ',
       fromInstagram: 'Instagram से सेव हुआ',
       manage: 'प्रबंधित करें',
+      demoTitle: 'Instagram अकाउंट नहीं है?',
+      demoBody: 'वही यात्रा एक नकली (सिम्युलेटेड) Instagram शेयर से आज़माएँ। वह आपकी अपनी लाइब्रेरी में आता है और “सिम्युलेटेड” लिखा रहता है।',
+      demoNote: 'आपके शब्द (वैकल्पिक)',
+      demoSample: 'सैंपल रील',
+      demoSamples: ['असली स्टेप वाली रेसिपी', 'जानकारी वाली जगह', 'सिर्फ़ हैशटैग और टैग', 'घर और पौधे'],
+      demoSend: 'सिम्युलेटेड शेयर भेजें',
+      demoSending: 'भेज रहे हैं और पढ़ रहे हैं…',
+      demoFailed: 'अभी सैंपल शेयर नहीं भेज पाए।',
+      simulated: 'सिम्युलेटेड Instagram शेयर',
     },
     journey: {
       nav: 'यात्रा',
