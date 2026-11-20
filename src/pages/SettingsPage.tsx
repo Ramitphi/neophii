@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, Trash2, Upload } from 'lucide-react';
 import { api, type HealthInfo } from '../lib/api';
 import type { StringsTable } from '../lib/i18n';
+import { LANDING } from '../landing/strings';
 import type { LanguageCode } from '../types/neophi';
 
 export function SettingsPage({
@@ -140,8 +141,9 @@ export function SettingsPage({
         {status && <p className="pill">{status}</p>}
       </section>
 
-      <section className="card">
+      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <p style={{ margin: 0 }}>{t.settingsPrivacyNote}</p>
+        <a href="#welcome">{LANDING[lang].footer.welcomeAgain}</a>
       </section>
     </div>
   );

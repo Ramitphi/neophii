@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Moon, Plus, Search, Sun } from 'lucide-react';
 import { CaptureModal } from './components/CaptureModal';
+import { LandingPage } from './landing/LandingPage';
 import { SearchModal } from './components/SearchModal';
 import { api } from './lib/api';
 import { isInstagramInAppBrowser } from './lib/firebase';
@@ -20,7 +21,20 @@ import type {
 
 type Tab = 'today' | 'library' | 'projects' | 'settings';
 
+const ENTERED_KEY = 'neophi_entered';
+
+function shouldShowLanding(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.location.hash === '#welcome') return true;
+  try {
+    return localStorage.getItem(ENTERED_KEY) !== '1';
+  } catch {
+    return true;
+  }
+}
+
 export function App() {
+  const [showLanding, setShowLanding] = useState(shouldShowLanding);
   const [tab, setTab] = useState<Tab>('today');
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [lang, setLang] = useState<LanguageCode>(
@@ -80,8 +94,50 @@ export function App() {
   }, [tz, readyForHourEnabled]);
 
   useEffect(() => {
+    if (showLanding) return;
     void refreshAll();
-  }, [refreshAll]);
+  }, [refreshAll, showLanding]);
+
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === '#welcome') {
+        setShowLanding(true);
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const enterApp = async (withSamples: boolean) => {
+    try {
+      localStorage.setItem(ENTERED_KEY, '1');
+    } catch {
+      /* private mode: the landing page shows again next visit */
+    }
+    if (withSamples) {
+      await api.loadSamples();
+    }
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    setSelectedMemoryId(null);
+    setTab('today');
+    setShowLanding(false);
+    window.scrollTo(0, 0);
+  };
+
+  if (showLanding) {
+    return (
+      <LandingPage
+        lang={lang}
+        onChangeLang={setLang}
+        theme={theme}
+        onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+        onEnter={enterApp}
+      />
+    );
+  }
 
   const hasSamples = memories.some((m) => m.sample);
   const isIgBrowser = isInstagramInAppBrowser();
