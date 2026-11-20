@@ -111,7 +111,7 @@ button,
 }
 
 /* The landing page and feed (.lp) style their own hover states. */
-button:hover:not(:disabled):not(.lp *),
+button:hover:not(:disabled):not(.lp *):not(.ph-chrome *),
 .btn:hover {
   background: var(--surface-muted);
 }
