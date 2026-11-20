@@ -221,7 +221,7 @@ cmd_vertex_smoke() {
   sleep 10
   echo "Vertex smoke results:"
   "${G[@]}" logging read "resource.type=cloud_run_job AND resource.labels.job_name=$SMOKE_JOB AND (jsonPayload.provider=vertex OR textPayload:\"vertex\")" \
-    --freshness=15m --limit=10 --format='value(jsonPayload.mode,jsonPayload.replied,jsonPayload.mime,jsonPayload.bytes,jsonPayload.http,textPayload)'
+    --freshness=15m --limit=10 --format='value(jsonPayload.mode,jsonPayload.replied,jsonPayload.mime,jsonPayload.bytes,jsonPayload.http,jsonPayload.reason,textPayload)'
   if [ "${KEEP:-0}" != 1 ]; then
     "${G[@]}" run jobs delete "$SMOKE_JOB" --region "$REGION"
     "${G[@]}" storage rm "$obj"
