@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lock, Upload, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { StringsTable } from '../lib/i18n';
@@ -37,6 +37,16 @@ export function CaptureModal({
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Escape closes the sheet, like the search sheet, unless a save is in progress.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, submitting, onClose]);
 
   if (!open) return null;
 
