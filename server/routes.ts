@@ -16,6 +16,7 @@ import { config } from './config.js';
 import { createAuthMiddleware, getUid, type AuthVerifier } from './firebase.js';
 import { buildEmbeddingText, type GeminiService } from './gemini.js';
 import { guardAnalysis, normalizeUserNote } from './guard.js';
+import type { DemoSender } from './instagram/demo.js';
 import { buildLinkCodeRecord, createAttemptLimiter, generateLinkCode } from './instagram/link.js';
 import { buildSampleLibrary } from './samples.js';
 import { searchMemories } from './search.js';
@@ -83,6 +84,8 @@ export interface ApiDeps {
   instagramWebhookConfigured?: boolean;
   /** Public username of the connected Instagram account (no @), shown so people know where to send. */
   instagramHandle?: string;
+  /** Present only when INSTAGRAM_DEMO_SENDER=1. */
+  instagramDemo?: DemoSender;
   now?: () => number;
 }
 
@@ -128,6 +131,7 @@ export function createApiRouter(deps: ApiDeps): express.Router {
         handle: igHandle,
         linked: Boolean(link),
         linkedAt: link ? new Date(link.linkedAtMs).toISOString() : null,
+        demoAvailable: Boolean(deps.instagramDemo),
       });
     } catch {
       res.status(500).json({ error: 'Could not read the Instagram link' });
@@ -153,6 +157,31 @@ export function createApiRouter(deps: ApiDeps): express.Router {
       res.json({ code, expiresAt: new Date(record.expiresAtMs).toISOString(), handle: igHandle });
     } catch {
       res.status(500).json({ error: 'Could not create a code' });
+    }
+  });
+
+  // "Try without Instagram": a simulated share into the caller's own library. 404 unless switched on.
+  const demoRequests = createAttemptLimiter(8, 60 * 60 * 1000);
+  router.post('/instagram/demo-share', async (req, res) => {
+    noStore(res);
+    if (!deps.instagramDemo) {
+      res.status(404).json({ error: 'Not available' });
+      return;
+    }
+    const uid = getUid(req);
+    if (!demoRequests.allow(uid, nowMs())) {
+      res.status(429).json({ error: 'Too many sample shares in a short time. Try again in a while.' });
+      return;
+    }
+    try {
+      const body = (req.body ?? {}) as { index?: unknown; note?: unknown };
+      const result = await deps.instagramDemo.submit(uid, {
+        index: typeof body.index === 'number' ? body.index : undefined,
+        note: typeof body.note === 'string' ? body.note : null,
+      });
+      res.json({ ok: true, ...result });
+    } catch {
+      res.status(500).json({ error: 'Could not send the sample share' });
     }
   });
 

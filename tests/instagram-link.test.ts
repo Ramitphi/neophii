@@ -107,7 +107,7 @@ describe('link API', () => {
 
     const status = await h.as(WEB_USER).get('/api/instagram/link');
     expect(status.status).toBe(200);
-    expect(status.body).toEqual({ available: true, handle: 'yuck.pov', linked: false, linkedAt: null });
+    expect(status.body).toEqual({ available: true, handle: 'yuck.pov', linked: false, linkedAt: null, demoAvailable: false });
     expect(status.headers['cache-control']).toBe('no-store');
   });
 

@@ -92,7 +92,14 @@ export function buildDmMemory(event: InstagramEventRecord, nowMs: number): Memor
     doneAt: null,
     snoozedUntil: null,
     lastOpenedAt: null,
-    ledger: [{ at: nowIso, who: 'you', text: 'Shared by Instagram DM', undoable: false }],
+    ledger: [
+      {
+        at: nowIso,
+        who: 'you',
+        text: share?.simulated ? 'Simulated Instagram share (try without Instagram)' : 'Shared by Instagram DM',
+        undoable: false,
+      },
+    ],
     sample: false,
     dm: {
       channel: 'instagram_dm',
@@ -102,6 +109,7 @@ export function buildDmMemory(event: InstagramEventRecord, nowMs: number): Memor
       mediaOutcome: 'pending',
       analysisGeneration: 0,
       primaryNoteId: null,
+      ...(share?.simulated ? { simulated: true } : {}),
     },
     dmNotes: [],
   };

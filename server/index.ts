@@ -6,6 +6,7 @@ import express from 'express';
 import { config } from './config.js';
 import type { AuthVerifier } from './firebase.js';
 import { VertexGeminiService, type GeminiService } from './gemini.js';
+import { createDemoSender } from './instagram/demo.js';
 import { loadInstagramConfig, type InstagramConfig } from './instagram/config.js';
 import {
   createInstagramInternalRouter,
@@ -79,6 +80,9 @@ export function createApp(overrides?: {
       authVerifier: overrides?.authVerifier,
       instagramWebhookConfigured: Boolean(igConfig.appSecret && igConfig.verifyToken && igConfig.recipientId),
       instagramHandle: igConfig.handle,
+      instagramDemo: igConfig.demoSender
+        ? createDemoSender({ store, config: igConfig, worker, now: overrides?.instagram?.now })
+        : undefined,
       now: overrides?.instagram?.now,
     })
   );

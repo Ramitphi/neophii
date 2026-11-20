@@ -192,7 +192,9 @@ export function MemoryPage({
           <span>Back</span>
         </button>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {memory.dm && <span className="pill">{FEED_STRINGS[lang].ig.fromInstagram}</span>}
+          {memory.dm && (
+            <span className="pill">{memory.dm.simulated ? FEED_STRINGS[lang].ig.simulated : FEED_STRINGS[lang].ig.fromInstagram}</span>
+          )}
           {memory.sample && <span className="pill">SAMPLE</span>}
           {memory.ingest === 'unsupported' && <span className="pill">SOURCE DELETED</span>}
           {memory.ingest === 'link_metadata' && <span className="pill">LINK ONLY</span>}
