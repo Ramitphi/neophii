@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Moon, Plus, Search, Sun } from 'lucide-react';
 import { CaptureModal } from './components/CaptureModal';
+import { FeedPage } from './pages/FeedPage';
+import { FEED_STRINGS } from './pages/feedStrings';
 import { LandingPage } from './landing/LandingPage';
 import { SearchModal } from './components/SearchModal';
 import { api } from './lib/api';
@@ -19,7 +21,7 @@ import type {
   TodayResponse,
 } from './types/neophi';
 
-type Tab = 'today' | 'library' | 'projects' | 'settings';
+type Tab = 'feed' | 'today' | 'library' | 'projects' | 'settings';
 
 const ENTERED_KEY = 'neophi_entered';
 
@@ -57,7 +59,9 @@ function initialTheme(): 'light' | 'dark' {
 
 export function App() {
   const [showLanding, setShowLanding] = useState(shouldShowLanding);
-  const [tab, setTab] = useState<Tab>('today');
+  // Landing-only preview: "Open Neophi" shows the feed with the sample library kept in the page.
+  const [previewData, setPreviewData] = useState<{ memories: Memory[]; categories: Category[] } | null>(null);
+  const [tab, setTab] = useState<Tab>('feed');
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [lang, setLang] = useState<LanguageCode>(
     () => (readStore('neophi_lang') as LanguageCode) || 'en'
@@ -131,7 +135,10 @@ export function App() {
 
   const enterApp = async (withSamples: boolean) => {
     if (LANDING_PREVIEW) {
-      document.getElementById('lp-feed')?.scrollIntoView({ behavior: 'smooth' });
+      const { buildSampleLibrary } = await import('../server/samples');
+      const lib = buildSampleLibrary();
+      setPreviewData({ memories: lib.memories, categories: lib.categories });
+      window.scrollTo(0, 0);
       return;
     }
     writeStore(ENTERED_KEY, '1');
@@ -142,10 +149,37 @@ export function App() {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
     setSelectedMemoryId(null);
-    setTab('today');
+    setTab('feed');
     setShowLanding(false);
     window.scrollTo(0, 0);
   };
+
+  if (LANDING_PREVIEW && previewData) {
+    return (
+      <div className="lp ph-app">
+        <FeedPage
+          memories={previewData.memories}
+          categories={previewData.categories}
+          lang={lang}
+          t={t}
+          theme={theme}
+          onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+          onOpenMemory={() => {}}
+          onOpenCapture={() => {}}
+          onOpenSearch={() => {}}
+          onNavigate={() => {}}
+          onLoadSamples={async () => {}}
+          onPatch={async (id, patch) =>
+            setPreviewData((d) =>
+              d ? { ...d, memories: d.memories.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : d
+            )
+          }
+          previewNote={FEED_STRINGS[lang].previewNote}
+          onLogo={() => setPreviewData(null)}
+        />
+      </div>
+    );
+  }
 
   if (showLanding) {
     return (
@@ -167,6 +201,62 @@ export function App() {
     setSelectedMemoryId(id);
   };
 
+  const modals = (
+    <>
+      <CaptureModal
+        open={captureOpen}
+        initialFocusUrl={captureFocusUrl}
+        onClose={() => setCaptureOpen(false)}
+        onSaved={(mem) => {
+          void refreshAll();
+          setSelectedMemoryId(mem.id);
+        }}
+        t={t}
+      />
+
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onOpenMemory={openMemory}
+        t={t}
+      />
+    </>
+  );
+
+  if (tab === 'feed' && !selectedMemoryId) {
+    return (
+      <>
+        {/* The feed uses the landing page's Mindful-paper tokens (.lp) and phone-feed styles. */}
+        <div className="lp ph-app">
+          <FeedPage
+            memories={memories}
+            categories={categories}
+            lang={lang}
+            t={t}
+            theme={theme}
+            onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+            onOpenMemory={openMemory}
+            onOpenCapture={() => {
+              setCaptureFocusUrl(false);
+              setCaptureOpen(true);
+            }}
+            onOpenSearch={() => setSearchOpen(true)}
+            onNavigate={(next) => setTab(next)}
+            onLoadSamples={async () => {
+              await api.loadSamples();
+              await refreshAll();
+            }}
+            onPatch={async (id, patch) => {
+              await api.patchMemory(id, patch);
+              await refreshAll();
+            }}
+          />
+        </div>
+        {modals}
+      </>
+    );
+  }
+
   return (
     <div>
       <header className="nav-bar">
@@ -183,7 +273,7 @@ export function App() {
               }}
               onClick={() => {
                 setSelectedMemoryId(null);
-                setTab('today');
+                setTab('feed');
               }}
             >
               {t.appName}
@@ -192,6 +282,7 @@ export function App() {
             <nav className="nav-links" aria-label="Main navigation">
               {(
                 [
+                  { id: 'feed', label: FEED_STRINGS[lang].feed },
                   { id: 'today', label: t.navToday },
                   { id: 'library', label: t.navLibrary },
                   { id: 'projects', label: t.navProjects },
@@ -315,23 +406,7 @@ export function App() {
         )}
       </main>
 
-      <CaptureModal
-        open={captureOpen}
-        initialFocusUrl={captureFocusUrl}
-        onClose={() => setCaptureOpen(false)}
-        onSaved={(mem) => {
-          void refreshAll();
-          setSelectedMemoryId(mem.id);
-        }}
-        t={t}
-      />
-
-      <SearchModal
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onOpenMemory={openMemory}
-        t={t}
-      />
+      {modals}
     </div>
   );
 }
