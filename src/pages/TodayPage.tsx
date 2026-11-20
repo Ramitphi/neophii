@@ -1,112 +1,12 @@
 import { useState } from 'react';
-import { Calendar, Check, Clock, HelpCircle } from 'lucide-react';
-import { api } from '../lib/api';
-import { downloadMemoryIcs } from '../lib/ics';
+import { FeedCard } from '../components/FeedCard';
 import type { StringsTable } from '../lib/i18n';
-import type { TodayCard, TodayResponse } from '../types/neophi';
-
-function TodayCardItem({
-  card,
-  onOpen,
-  onRefresh,
-  t,
-}: {
-  card: TodayCard;
-  onOpen: (id: string) => void;
-  onRefresh: () => void;
-  t: StringsTable;
-}) {
-  const [showWhy, setShowWhy] = useState(false);
-  const [showLater, setShowLater] = useState(false);
-
-  const markDone = async () => {
-    await api.patchMemory(card.memory.id, { doneAt: new Date().toISOString() });
-    onRefresh();
-  };
-
-  const snoozeTo = async (hoursFromNow: number) => {
-    const until = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();
-    await api.patchMemory(card.memory.id, { snoozedUntil: until });
-    setShowLater(false);
-    onRefresh();
-  };
-
-  return (
-    <article className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <h3 className="serif-title" style={{ fontSize: '1.15rem' }}>
-          {card.memory.title}
-        </h3>
-        {card.memory.sample && <span className="pill">SAMPLE</span>}
-      </div>
-
-      {card.memory.note && (
-        <blockquote
-          style={{
-            margin: 0,
-            padding: '8px 12px',
-            borderLeft: '3px solid var(--user-border)',
-            background: 'var(--user-bg)',
-            borderRadius: '0 8px 8px 0',
-          }}
-        >
-          {card.memory.note}
-        </blockquote>
-      )}
-
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowWhy((v) => !v)}
-          style={{ minHeight: 48, fontSize: '0.88rem', padding: '6px 10px' }}
-        >
-          <HelpCircle size={15} aria-hidden="true" />
-          <span>{t.whySeeingThis}</span>
-        </button>
-        {showWhy && (
-          <p className="muted" style={{ margin: '6px 0 0', fontSize: '0.9rem' }}>
-            {card.whySeeing}
-          </p>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 'auto' }}>
-        <button type="button" className="btn-primary" onClick={() => onOpen(card.memory.id)}>
-          {t.actionOpen}
-        </button>
-        <button type="button" onClick={() => void markDone()}>
-          <Check size={16} aria-hidden="true" />
-          <span>{t.actionDone}</span>
-        </button>
-        <button type="button" onClick={() => setShowLater((v) => !v)}>
-          <Clock size={16} aria-hidden="true" />
-          <span>{t.actionLater}</span>
-        </button>
-        <button type="button" onClick={() => downloadMemoryIcs(card.memory)}>
-          <Calendar size={16} aria-hidden="true" />
-          <span>{t.actionIcs}</span>
-        </button>
-      </div>
-
-      {showLater && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 6 }}>
-          <button type="button" onClick={() => void snoozeTo(5)}>
-            Tonight
-          </button>
-          <button type="button" onClick={() => void snoozeTo(48)}>
-            This weekend
-          </button>
-          <button type="button" onClick={() => void snoozeTo(24 * 7)}>
-            Next week
-          </button>
-        </div>
-      )}
-    </article>
-  );
-}
+import type { Category, Memory, TodayResponse } from '../types/neophi';
 
 export function TodayPage({
   feed,
+  categories,
+  memories,
   readyForHourEnabled,
   onToggleReadyForHour,
   onOpenMemory,
@@ -116,6 +16,8 @@ export function TodayPage({
   t,
 }: {
   feed: TodayResponse | null;
+  categories: Category[];
+  memories: Memory[];
   readyForHourEnabled: boolean;
   onToggleReadyForHour: () => void;
   onOpenMemory: (id: string) => void;
@@ -125,6 +27,7 @@ export function TodayPage({
   t: StringsTable;
 }) {
   const [loadingSamples, setLoadingSamples] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   if (!feed) {
     return <p className="muted">Loading…</p>;
@@ -173,98 +76,175 @@ export function TodayPage({
     );
   }
 
+  const filteredMemories =
+    activeCategory === 'all'
+      ? []
+      : memories.filter((m) => m.categoryId === activeCategory && !m.doneAt);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginTop: 20 }}>
-      {feed.justArrived.length > 0 && (
-        <section>
-          <h2 className="serif-title" style={{ fontSize: '1.4rem', marginBottom: 12 }}>
-            {t.sectionJustArrived}
-          </h2>
-          <div className="grid-cards">
-            {feed.justArrived.map((c) => (
-              <TodayCardItem key={c.memory.id} card={c} onOpen={onOpenMemory} onRefresh={onRefresh} t={t} />
-            ))}
-          </div>
-        </section>
+    <div className="feed-column" style={{ marginTop: 16 }}>
+      {/* Category filter tiles */}
+      {categories.length > 0 && (
+        <div className="chip-scroller" role="toolbar" aria-label="Filter by category">
+          <button
+            type="button"
+            className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
+            aria-pressed={activeCategory === 'all'}
+            onClick={() => setActiveCategory('all')}
+          >
+            All
+          </button>
+          {categories.map((cat) => {
+            const count = memories.filter((m) => m.categoryId === cat.id && !m.doneAt).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                className={`filter-chip ${activeCategory === cat.id ? 'active' : ''}`}
+                aria-pressed={activeCategory === cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+              >
+                {cat.name}
+                <span className="filter-chip-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
       )}
 
-      {feed.youAskedForThis.length > 0 && (
-        <section>
-          <h2 className="serif-title" style={{ fontSize: '1.4rem', marginBottom: 12 }}>
-            {t.sectionYouAsked}
-          </h2>
-          <div className="grid-cards">
-            {feed.youAskedForThis.map((c) => (
-              <TodayCardItem key={c.memory.id} card={c} onOpen={onOpenMemory} onRefresh={onRefresh} t={t} />
-            ))}
-          </div>
+      {activeCategory !== 'all' ? (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {filteredMemories.map((m) => (
+            <FeedCard
+              key={m.id}
+              memory={m}
+              onOpen={onOpenMemory}
+              onRefresh={onRefresh}
+              t={t}
+            />
+          ))}
         </section>
-      )}
+      ) : (
+        <>
+          {feed.justArrived.length > 0 && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+                {t.sectionJustArrived}
+              </h2>
+              {feed.justArrived.map((c) => (
+                <FeedCard
+                  key={c.memory.id}
+                  memory={c.memory}
+                  whySeeing={c.whySeeing}
+                  onOpen={onOpenMemory}
+                  onRefresh={onRefresh}
+                  t={t}
+                />
+              ))}
+            </section>
+          )}
 
-      {feed.activeProjects.length > 0 && (
-        <section>
-          <h2 className="serif-title" style={{ fontSize: '1.4rem', marginBottom: 12 }}>
-            {t.sectionActiveProjects}
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {feed.activeProjects.map((grp) => (
-              <div key={grp.project.id}>
-                <h3 className="serif-title" style={{ fontSize: '1.15rem', marginBottom: 10 }}>
-                  {grp.project.name}
-                </h3>
-                <div className="grid-cards">
+          {feed.youAskedForThis.length > 0 && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+                {t.sectionYouAsked}
+              </h2>
+              {feed.youAskedForThis.map((c) => (
+                <FeedCard
+                  key={c.memory.id}
+                  memory={c.memory}
+                  whySeeing={c.whySeeing}
+                  onOpen={onOpenMemory}
+                  onRefresh={onRefresh}
+                  t={t}
+                />
+              ))}
+            </section>
+          )}
+
+          {feed.activeProjects.length > 0 && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+                {t.sectionActiveProjects}
+              </h2>
+              {feed.activeProjects.map((grp) => (
+                <div key={grp.project.id} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <h3 className="serif-title" style={{ fontSize: '1.1rem' }}>
+                    {grp.project.name}
+                  </h3>
                   {grp.cards.map((c) => (
-                    <TodayCardItem key={c.memory.id} card={c} onOpen={onOpenMemory} onRefresh={onRefresh} t={t} />
+                    <FeedCard
+                      key={c.memory.id}
+                      memory={c.memory}
+                      whySeeing={c.whySeeing}
+                      onOpen={onOpenMemory}
+                      onRefresh={onRefresh}
+                      t={t}
+                    />
                   ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {(feed.readyForThisHour.cards.length > 0 || !readyForHourEnabled) && (
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-            <h2 className="serif-title" style={{ fontSize: '1.4rem' }}>
-              {t.sectionReadyForHour} ({feed.readyForThisHour.windowLabel})
-            </h2>
-            <button type="button" onClick={onToggleReadyForHour}>
-              {readyForHourEnabled ? 'Switch off' : 'Switch on'}
-            </button>
-          </div>
-          {readyForHourEnabled && feed.readyForThisHour.cards.length > 0 && (
-            <div className="grid-cards">
-              {feed.readyForThisHour.cards.map((c) => (
-                <TodayCardItem key={c.memory.id} card={c} onOpen={onOpenMemory} onRefresh={onRefresh} t={t} />
               ))}
-            </div>
+            </section>
           )}
-        </section>
-      )}
 
-      {feed.beforeItFades && (
-        <section>
-          <h2 className="serif-title" style={{ fontSize: '1.4rem', marginBottom: 12 }}>
-            {t.sectionBeforeItFades}
-          </h2>
-          <div className="grid-cards">
-            <TodayCardItem card={feed.beforeItFades} onOpen={onOpenMemory} onRefresh={onRefresh} t={t} />
-          </div>
-        </section>
-      )}
+          {(feed.readyForThisHour.cards.length > 0 || !readyForHourEnabled) && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+                  {t.sectionReadyForHour} ({feed.readyForThisHour.windowLabel})
+                </h2>
+                <button type="button" onClick={onToggleReadyForHour}>
+                  {readyForHourEnabled ? 'Switch off' : 'Switch on'}
+                </button>
+              </div>
+              {readyForHourEnabled &&
+                feed.readyForThisHour.cards.map((c) => (
+                  <FeedCard
+                    key={c.memory.id}
+                    memory={c.memory}
+                    whySeeing={c.whySeeing}
+                    onOpen={onOpenMemory}
+                    onRefresh={onRefresh}
+                    t={t}
+                  />
+                ))}
+            </section>
+          )}
 
-      {feed.weeklyCard.visible && feed.weeklyCard.cards.length > 0 && (
-        <section>
-          <h2 className="serif-title" style={{ fontSize: '1.4rem', marginBottom: 12 }}>
-            {t.sectionWeekly}
-          </h2>
-          <div className="grid-cards">
-            {feed.weeklyCard.cards.map((c) => (
-              <TodayCardItem key={c.memory.id} card={c} onOpen={onOpenMemory} onRefresh={onRefresh} t={t} />
-            ))}
-          </div>
-        </section>
+          {feed.beforeItFades && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+                {t.sectionBeforeItFades}
+              </h2>
+              <FeedCard
+                memory={feed.beforeItFades.memory}
+                whySeeing={feed.beforeItFades.whySeeing}
+                onOpen={onOpenMemory}
+                onRefresh={onRefresh}
+                t={t}
+              />
+            </section>
+          )}
+
+          {feed.weeklyCard.visible && feed.weeklyCard.cards.length > 0 && (
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+                {t.sectionWeekly}
+              </h2>
+              {feed.weeklyCard.cards.map((c) => (
+                <FeedCard
+                  key={c.memory.id}
+                  memory={c.memory}
+                  whySeeing={c.whySeeing}
+                  onOpen={onOpenMemory}
+                  onRefresh={onRefresh}
+                  t={t}
+                />
+              ))}
+            </section>
+          )}
+        </>
       )}
     </div>
   );
