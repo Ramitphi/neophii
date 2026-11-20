@@ -664,7 +664,7 @@ export function buildSampleLibrary(now = new Date()): {
         inferred_possible_intents: [
           { intent: 'Use a problem-first opening hook in the cafe launch reel', confidence: 0.88, evidence: ['ev1'] },
         ],
-        actionable_entities: [],
+        actionable_entities: [{ type: 'other', name: 'Reel hooks', evidence: [], uncertain: true }],
         suggested_actions: ['content_brief'],
         purpose: 'create',
         note_grounding: {
@@ -766,7 +766,7 @@ export function buildSampleLibrary(now = new Date()): {
         inferred_possible_intents: [
           { intent: 'Use as a close-up b-roll shot reference', confidence: 0.79, evidence: ['ev1'] },
         ],
-        actionable_entities: [],
+        actionable_entities: [{ type: 'other', name: 'Reel hooks', evidence: [], uncertain: true }],
         suggested_actions: ['content_brief'],
         purpose: 'create',
         note_grounding: { status: 'no_note', evidence: [], explanation: '' },

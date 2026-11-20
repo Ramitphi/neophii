@@ -103,6 +103,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-lang', lang);
+    document.documentElement.lang = lang === 'hi' ? 'hi' : 'en'; // for screen readers and hyphenation
     writeStore('neophi_lang', lang);
   }, [lang]);
 
