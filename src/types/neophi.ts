@@ -73,6 +73,67 @@ export type MemoryPurpose =
   | 'try_later'
   | 'other';
 
+/** What kind of Reel or post this is, from a fixed list. `personal_other` when nothing fits or the source is unreadable. */
+export const REEL_TYPES = [
+  'recipe',
+  'travel_place',
+  'product_shopping',
+  'tutorial_howto',
+  'diy_home',
+  'fitness',
+  'fashion_style',
+  'tech_tool',
+  'finance',
+  'news_explainer',
+  'humour_meme',
+  'music_dance',
+  'quote_motivation',
+  'event_offer',
+  'personal_other',
+] as const;
+export type ReelType = (typeof REEL_TYPES)[number];
+
+/**
+ * Type-specific facts worth keeping (ingredients for a recipe, price and hours for a place).
+ * Each one must cite evidence; the guard drops any that do not.
+ */
+export const TYPE_DETAIL_FIELDS = [
+  'dish',
+  'ingredient',
+  'step',
+  'time',
+  'place',
+  'area',
+  'price',
+  'hours',
+  'product',
+  'brand',
+  'where_to_buy',
+  'tool',
+  'material',
+  'exercise',
+  'sets_reps',
+  'item',
+  'topic',
+  'figure',
+  'claim',
+  'source',
+  'date',
+  'venue',
+  'offer',
+  'deadline',
+  'song',
+  'quote',
+  'other',
+] as const;
+export type TypeDetailField = (typeof TYPE_DETAIL_FIELDS)[number];
+
+export interface TypeDetail {
+  field: TypeDetailField;
+  value: string;
+  evidence: string[];
+}
+
 export type NoteGroundingStatus =
   | 'grounded'
   | 'not_sure'
@@ -96,6 +157,13 @@ export interface MemoryAnalysis {
   suggested_actions: SuggestedAction[];
   purpose: MemoryPurpose;
   note_grounding: NoteGrounding;
+  /** Added later; older readings do not have these. */
+  reel_type?: ReelType;
+  reel_type_confidence?: number;
+  reel_type_evidence?: string[];
+  /** True when the type has no evidence or a confidence under the not-sure threshold. */
+  reel_type_uncertain?: boolean;
+  type_details?: TypeDetail[];
 }
 
 export interface MemoryMedia {

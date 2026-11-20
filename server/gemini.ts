@@ -5,13 +5,43 @@ import type {
   MemoryAnalysis,
   OutcomeSection,
   OutcomeType,
+  ReelType,
   SearchQueryUnderstanding,
 } from '../src/types/neophi.js';
+import { REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
 import { config } from './config.js';
 import { guardAnalysis } from './guard.js';
 
-export const ANALYSIS_SYSTEM_INSTRUCTION =
+const ANALYSIS_RULES =
   "You read one saved item for a personal memory app. Return only JSON in the given schema. Rules: (1) Never write the user's reason; the user's note is given separately and is handled by code. (2) Every observation, suggestion and entity must cite an evidence id from your evidence list; if you cannot, leave evidence empty. (3) Only describe what you can actually see or hear in the media provided. If no media is provided, describe only the caption text; never guess what a video shows. (4) A fact that appears only in the user's note must not cite media or caption evidence. (5) Suggestions are possibilities with a confidence from 0 to 1, not facts. (6) Evidence for video uses seconds (t, tEnd); for images use a region in percent (bbox x, y, w, h).";
+
+/**
+ * What to look for in each kind of Reel. Shown to the model as a rubric; the guard enforces the list and the evidence.
+ * Keep the keys in step with REEL_TYPES.
+ */
+export const REEL_TYPE_RUBRIC: Record<ReelType, string> = {
+  recipe: 'cooking or a dish; details: dish, ingredient (one per item), step, time',
+  travel_place: 'a place to visit, stay or eat at; details: place, area, price, hours',
+  product_shopping: 'a product to buy or a haul or review; details: product, brand, price, where_to_buy',
+  tutorial_howto: 'teaches how to do something (not cooking, home or fitness); details: step, tool, topic',
+  diy_home: 'home, decor, cleaning, gardening or a craft project; details: material, tool, step',
+  fitness: 'workout, exercise, yoga or sport; details: exercise, sets_reps, time',
+  fashion_style: 'outfits, clothes, makeup, skincare or hair; details: item, brand, price',
+  tech_tool: 'an app, gadget, website, software or AI tool; details: tool, topic, price',
+  finance: 'money, investing, saving, tax or prices; details: topic, figure. Never add advice of your own',
+  news_explainer: 'news, current events or an explainer of a topic; details: topic, claim, source',
+  humour_meme: 'a joke, sketch, meme or prank; details: topic',
+  music_dance: 'a song, dance, cover or performance; details: song, topic',
+  quote_motivation: 'a quote, affirmation or motivational talk; details: quote, topic',
+  event_offer: 'an event, sale, launch or limited-time offer; details: date, venue, offer, deadline, price',
+  personal_other: 'a personal moment or anything that fits none of the above',
+};
+
+export const ANALYSIS_SYSTEM_INSTRUCTION = `${ANALYSIS_RULES} Classify the item: (7) Pick reel_type from this list only, after writing the evidence; choose the single main type of the whole item, not of one detail: ${Object.entries(
+  REEL_TYPE_RUBRIC
+)
+  .map(([k, v]) => `${k} = ${v}`)
+  .join('; ')}. Give reel_type_confidence from 0 to 1 and cite the evidence ids that show the type in reel_type_evidence. Use personal_other with a low confidence when nothing fits. The user's note may tell you why they saved it, but the type describes the item itself. (8) type_details holds only facts that are stated or shown in the item, each with the field named for that type above, a short value copied or closely paraphrased from the source, and at least one evidence id. Never fill a detail from general knowledge: no prices, hours, addresses, ingredients or steps that are not in the item. Leave type_details empty rather than guess.`;
 
 const BBOX_SCHEMA = {
   type: Type.OBJECT,
@@ -86,6 +116,22 @@ const ANALYSIS_RESPONSE_SCHEMA = {
     },
     suggested_actions: { type: Type.ARRAY, items: { type: Type.STRING } },
     purpose: { type: Type.STRING },
+    reel_type: { type: Type.STRING, format: 'enum', enum: [...REEL_TYPES] },
+    reel_type_confidence: { type: Type.NUMBER },
+    reel_type_evidence: { type: Type.ARRAY, items: { type: Type.STRING } },
+    type_details: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          field: { type: Type.STRING, format: 'enum', enum: [...TYPE_DETAIL_FIELDS] },
+          value: { type: Type.STRING },
+          evidence: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ['field', 'value', 'evidence'],
+        propertyOrdering: ['field', 'value', 'evidence'],
+      },
+    },
     note_grounding: {
       type: Type.OBJECT,
       properties: {
@@ -104,6 +150,27 @@ const ANALYSIS_RESPONSE_SCHEMA = {
     'transcript_summary',
     'inferred_possible_intents',
     'actionable_entities',
+    'suggested_actions',
+    'purpose',
+    'note_grounding',
+    'reel_type',
+    'reel_type_confidence',
+    'reel_type_evidence',
+    'type_details',
+  ],
+  // Evidence first, then what was seen, then the classification that rests on it.
+  propertyOrdering: [
+    'evidence',
+    'source_summary',
+    'observed_objects',
+    'visible_text',
+    'transcript_summary',
+    'reel_type',
+    'reel_type_confidence',
+    'reel_type_evidence',
+    'type_details',
+    'actionable_entities',
+    'inferred_possible_intents',
     'suggested_actions',
     'purpose',
     'note_grounding',
