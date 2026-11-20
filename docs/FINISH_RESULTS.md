@@ -8,7 +8,7 @@ Summary: the whole journey passes on Cloud Run (18/18), the acceptance checks pa
 
 | Item | Value |
 | --- | --- |
-| Commit deployed (git SHA) and image | `fde0ba6c26e7`, image `asia-south1-docker.pkg.dev/neophi-515314/neophi/neophi:fde0ba6c26e7`. Public revision `neophi-00004-v8c`, worker revision `neophi-worker-00009-b7k` (same image; only `INSTAGRAM_MAX_MEDIA_BYTES` added, see D). This branch also carries the merge of `main` (hero refresh), which is not deployed yet. |
+| Commit deployed (git SHA) and image | `4c0eb5341b17` (main after #12, #13, #15), image `asia-south1-docker.pkg.dev/neophi-515314/neophi/neophi:4c0eb5341b17`. Public revision `neophi-00009-9kk`, worker revision `neophi-worker-00015-msw` (`INSTAGRAM_MAX_MEDIA_BYTES=52428800`, see D). After this deploy: journey 18/18, acceptance 10/10. |
 | Public service URL | https://neophi-4ngyvfbl6a-el.a.run.app (also https://neophi-1088973814588.asia-south1.run.app) |
 | **Callback URL to enter in Meta** | `https://neophi-4ngyvfbl6a-el.a.run.app/webhooks/instagram` (already entered and verified by the app owner) |
 | Verify token: Secret Manager name and version | `neophi-meta-verify-token`, version 1 (the only version, enabled; the serving revision reads version 1). The value went to the app owner privately. |
@@ -64,10 +64,9 @@ After the app owner switched the Meta callback to Cloud Run:
 ## D. Blocked, skipped or unverified
 
 - **Firestore emulator tests**: NOT RUN here (no Java runtime). They need Java 21 or newer.
-- **Large media by attachment**: `INSTAGRAM_MAX_MEDIA_BYTES` was raised to 50 MB (`52428800`) on the worker after one Meta attachment was rejected at the 15 MB default. The worker holds up to that much in memory (512 MiB available) and the reading takes it from Cloud Storage. Not yet exercised with a real attachment over 15 MB. Rollback: send all worker traffic back to revision `neophi-worker-00008-wjn`.
+- **Large media by attachment**: `INSTAGRAM_MAX_MEDIA_BYTES` was raised to 50 MB (`52428800`) on the worker after one Meta attachment was rejected at the 15 MB default. The worker holds up to that much in memory (512 MiB available) and the reading takes it from Cloud Storage. Not yet exercised with a real attachment over 15 MB. The deploy script's worker template now sets it, so later deploys keep it.
 - **Shared Reels give no media**: every shared Reel in the live test came without a media link, so the reading used the caption plus the person's note. The Graph attachment lookup needs the app owner's access token and was not tried.
 - **Old callback**: the old VM did not answer, so rolling back means fixing forward on Cloud Run.
-- **Not deployed**: the merge of `main` (hero refresh) on this branch.
 - **Part B**: not started.
 
 ## E. What the app owner does next
