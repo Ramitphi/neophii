@@ -2,7 +2,7 @@
 
 **Remember why you saved it.** Neophi keeps the Reels and posts you save together with your own words about why you saved them. Your words always come first, exactly as you typed them. The AI reading sits apart, labelled, and only says what it can point to in the source.
 
-Try it: https://neophi-4ngyvfbl6a-el.a.run.app
+Try it: https://neophi-4ngyvfbl6a-el.a.run.app (deployed from `main` at `d77d088`: public revision `neophi-00012-8rb`, worker `neophi-worker-00019-p9b`)
 
 ## What it does
 

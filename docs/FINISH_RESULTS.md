@@ -8,7 +8,7 @@ Summary: the whole journey passes on Cloud Run (18/18), the acceptance checks pa
 
 | Item | Value |
 | --- | --- |
-| Commit deployed (git SHA) and image | `4c0eb5341b17` (main after #12, #13, #15), image `asia-south1-docker.pkg.dev/neophi-515314/neophi/neophi:4c0eb5341b17`. Public revision `neophi-00009-9kk`, worker revision `neophi-worker-00015-msw` (`INSTAGRAM_MAX_MEDIA_BYTES=52428800`, see D). After this deploy: journey 18/18, acceptance 10/10. |
+| Commit deployed (git SHA) and image | `d77d088739af` (main after #17 and #18), image `asia-south1-docker.pkg.dev/neophi-515314/neophi/neophi:d77d088739af`. Public revision `neophi-00012-8rb`, worker revision `neophi-worker-00019-p9b` (`INSTAGRAM_MAX_MEDIA_BYTES=52428800`). After this deploy: journey 18/18 (save after 35 s), acceptance 10/10. |
 | Public service URL | https://neophi-4ngyvfbl6a-el.a.run.app (also https://neophi-1088973814588.asia-south1.run.app) |
 | **Callback URL to enter in Meta** | `https://neophi-4ngyvfbl6a-el.a.run.app/webhooks/instagram` (already entered and verified by the app owner) |
 | Verify token: Secret Manager name and version | `neophi-meta-verify-token`, version 1 (the only version, enabled; the serving revision reads version 1). The value went to the app owner privately. |
@@ -27,6 +27,8 @@ Summary: the whole journey passes on Cloud Run (18/18), the acceptance checks pa
 | `INSTAGRAM_LOG_DENIED_SENDERS` | `0` |
 
 ## B. Gates
+
+Final check on the live site at phone width, on a throw-away account (2026-11-20, 23:35 UTC): the connect code appears, the Journey page shows the sample library (15 saves, 8 branches, the person's words first), a Hinglish search puts the right save first, and Delete everything empties the library; no console errors.
 
 | Gate | Result | Counts / notes |
 | --- | --- | --- |
