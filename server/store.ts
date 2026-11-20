@@ -22,6 +22,7 @@ import {
   type NoteOutcome,
   type ShareFinalizeInput,
 } from './instagram/model.js';
+import type { InstagramLinkCodeRecord, InstagramLinkRecord } from './instagram/link.js';
 
 export interface StoredMemory extends Memory {
   embedding?: number[] | null;
@@ -98,6 +99,19 @@ export interface NeophiStore {
   /** Tombstones the share behind a DM memory and cancels its analysis job. No-op for other memories. */
   markInstagramShareDeleted(uid: string, memoryId: string): Promise<void>;
   instagramCounts(): Promise<InstagramCounts>;
+
+  // Self-serve Instagram linking: a signed-in user gets a one-time code; sending it by DM binds that sender to them.
+  /** Stores a new live code for the user and drops their earlier ones (one live code per user). */
+  createInstagramLinkCode(record: InstagramLinkCodeRecord): Promise<void>;
+  /**
+   * Consumes a code exactly once. A valid, unexpired code binds `senderId` to the code's owner (replacing any
+   * previous link of that owner) and returns the link; anything else returns null.
+   */
+  redeemInstagramLinkCode(codeHash: string, senderId: string, nowMs: number): Promise<InstagramLinkRecord | null>;
+  getInstagramLinkBySender(senderId: string): Promise<InstagramLinkRecord | null>;
+  getInstagramLinkForUser(uid: string): Promise<InstagramLinkRecord | null>;
+  /** Removes the user's link and any unused codes. Returns whether a link existed. */
+  removeInstagramLinkForUser(uid: string): Promise<boolean>;
 }
 
 function stripEmbedding(docData: Record<string, unknown>): Memory {
@@ -270,6 +284,7 @@ export class FirestoreStore implements NeophiStore {
   }
 
   async deleteAllUserData(uid: string): Promise<void> {
+    await this.removeInstagramLinkForUser(uid);
     await this.tombstoneAllInstagramShares(uid);
     const collections = [this.memoriesCol(uid), this.categoriesCol(uid), this.projectsCol(uid)];
     for (const col of collections) {
@@ -291,6 +306,14 @@ export class FirestoreStore implements NeophiStore {
 
   private igJobs() {
     return this.db.collection('instagramJobs');
+  }
+
+  private igLinkCodes() {
+    return this.db.collection('instagramLinkCodes');
+  }
+
+  private igLinks() {
+    return this.db.collection('instagramLinks');
   }
 
   private static toFs<T extends { expireAtMs: number }>(record: T): Record<string, unknown> {
@@ -515,6 +538,54 @@ export class FirestoreStore implements NeophiStore {
     ]);
     return { events: { shares, notes, activeShares, deletedShares }, jobs: { queued, leased, done, dead } };
   }
+
+  // ---------- Instagram linking ----------
+  async createInstagramLinkCode(record: InstagramLinkCodeRecord): Promise<void> {
+    const earlier = await this.igLinkCodes().where('uid', '==', record.uid).get();
+    const batch = this.db.batch();
+    for (const doc of earlier.docs) batch.delete(doc.ref);
+    batch.set(this.igLinkCodes().doc(record.id), FirestoreStore.toFs(record));
+    await batch.commit();
+  }
+
+  async redeemInstagramLinkCode(codeHash: string, senderId: string, nowMs: number): Promise<InstagramLinkRecord | null> {
+    return this.db.runTransaction(async (tx) => {
+      const codeRef = this.igLinkCodes().doc(codeHash);
+      const codeDoc = await tx.get(codeRef);
+      if (!codeDoc.exists) return null;
+      const code = FirestoreStore.fromFs<InstagramLinkCodeRecord>(codeDoc.data());
+      const ownersLinks = await tx.get(this.igLinks().where('uid', '==', code.uid));
+      tx.delete(codeRef); // single use, whether or not it was still valid
+      if (code.expiresAtMs <= nowMs) return null;
+      for (const doc of ownersLinks.docs) if (doc.id !== senderId) tx.delete(doc.ref);
+      const link: InstagramLinkRecord = { senderId, uid: code.uid, linkedAtMs: nowMs };
+      tx.set(this.igLinks().doc(senderId), link);
+      return link;
+    });
+  }
+
+  async getInstagramLinkBySender(senderId: string): Promise<InstagramLinkRecord | null> {
+    const doc = await this.igLinks().doc(senderId).get();
+    return doc.exists ? (doc.data() as InstagramLinkRecord) : null;
+  }
+
+  async getInstagramLinkForUser(uid: string): Promise<InstagramLinkRecord | null> {
+    const snap = await this.igLinks().where('uid', '==', uid).limit(1).get();
+    return snap.empty ? null : (snap.docs[0].data() as InstagramLinkRecord);
+  }
+
+  async removeInstagramLinkForUser(uid: string): Promise<boolean> {
+    const [links, codes] = await Promise.all([
+      this.igLinks().where('uid', '==', uid).get(),
+      this.igLinkCodes().where('uid', '==', uid).get(),
+    ]);
+    if (links.empty && codes.empty) return false;
+    const batch = this.db.batch();
+    for (const doc of links.docs) batch.delete(doc.ref);
+    for (const doc of codes.docs) batch.delete(doc.ref);
+    await batch.commit();
+    return !links.empty;
+  }
 }
 
 interface UserBucket {
@@ -651,6 +722,7 @@ export class InMemoryStore implements NeophiStore {
   }
 
   async deleteAllUserData(uid: string): Promise<void> {
+    await this.removeInstagramLinkForUser(uid);
     for (const [id, event] of this.igEvents) {
       if (event.uid !== uid) continue;
       this.igEvents.set(id, event.kind === 'share' ? { ...clearedPayload(event), shareState: 'deleted' } : clearedPayload(event));
@@ -664,6 +736,8 @@ export class InMemoryStore implements NeophiStore {
   // with respect to concurrent callers in this process (the Firestore store uses transactions).
   private igEvents = new Map<string, InstagramEventRecord>();
   private igJobs = new Map<string, InstagramJob>();
+  private igLinkCodes = new Map<string, InstagramLinkCodeRecord>();
+  private igLinks = new Map<string, InstagramLinkRecord>();
   /** Test hook: number of times each method ran. */
   readonly calls = { recordInstagramEvent: 0 };
 
@@ -807,6 +881,44 @@ export class InMemoryStore implements NeophiStore {
       },
       jobs: { queued: by('queued'), leased: by('leased'), done: by('done'), dead: by('dead') },
     };
+  }
+
+  // ---------- Instagram linking ----------
+  async createInstagramLinkCode(record: InstagramLinkCodeRecord): Promise<void> {
+    for (const [id, c] of this.igLinkCodes) if (c.uid === record.uid) this.igLinkCodes.delete(id);
+    this.igLinkCodes.set(record.id, plain(record));
+  }
+
+  async redeemInstagramLinkCode(codeHash: string, senderId: string, nowMs: number): Promise<InstagramLinkRecord | null> {
+    const code = this.igLinkCodes.get(codeHash);
+    if (!code) return null;
+    this.igLinkCodes.delete(codeHash); // single use, whether or not it was still valid
+    if (code.expiresAtMs <= nowMs) return null;
+    for (const [id, l] of this.igLinks) if (l.uid === code.uid && id !== senderId) this.igLinks.delete(id);
+    const link: InstagramLinkRecord = { senderId, uid: code.uid, linkedAtMs: nowMs };
+    this.igLinks.set(senderId, link);
+    return { ...link };
+  }
+
+  async getInstagramLinkBySender(senderId: string): Promise<InstagramLinkRecord | null> {
+    const l = this.igLinks.get(senderId);
+    return l ? { ...l } : null;
+  }
+
+  async getInstagramLinkForUser(uid: string): Promise<InstagramLinkRecord | null> {
+    for (const l of this.igLinks.values()) if (l.uid === uid) return { ...l };
+    return null;
+  }
+
+  async removeInstagramLinkForUser(uid: string): Promise<boolean> {
+    let had = false;
+    for (const [id, l] of this.igLinks) {
+      if (l.uid !== uid) continue;
+      this.igLinks.delete(id);
+      had = true;
+    }
+    for (const [id, c] of this.igLinkCodes) if (c.uid === uid) this.igLinkCodes.delete(id);
+    return had;
   }
 
   /** Test hook: raw restricted records, to prove payloads are cleared. */

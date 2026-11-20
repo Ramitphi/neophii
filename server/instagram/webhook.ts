@@ -4,6 +4,7 @@
 import express from 'express';
 import type { NeophiStore } from '../store.js';
 import type { InstagramConfig } from './config.js';
+import { createAttemptLimiter, hashLinkCode, normalizeLinkCode } from './link.js';
 import { logEvent } from './log.js';
 import { buildEventJob, eventIdFor, RETENTION_MS, type InstagramEventRecord } from './model.js';
 import { parseInstagramDelivery, safeEqual, verifyMetaSignature, type ParsedEnvelope } from './parse.js';
@@ -18,10 +19,13 @@ export interface WebhookStats {
   ignored: number;
   denied: number;
   intakeFailures: number;
+  /** Instagram accounts linked to a library with a one-time code, and code messages that did not link. */
+  linked: number;
+  linkRejected: number;
 }
 
 export function newWebhookStats(): WebhookStats {
-  return { posts: 0, badSignature: 0, malformed: 0, stored: 0, duplicates: 0, ignored: 0, denied: 0, intakeFailures: 0 };
+  return { posts: 0, badSignature: 0, malformed: 0, stored: 0, duplicates: 0, ignored: 0, denied: 0, intakeFailures: 0, linked: 0, linkRejected: 0 };
 }
 
 const FUTURE_SKEW_MS = 10 * 60 * 1000;
@@ -65,6 +69,8 @@ export function createInstagramWebhookRouter(deps: {
   const router = express.Router();
   const cfg = deps.config;
   const now = deps.now ?? (() => Date.now());
+  // A code is about 40 bits, so a handful of tries per sender per window makes guessing pointless.
+  const linkAttempts = createAttemptLimiter(8, 10 * 60 * 1000);
 
   router.get('/', (req, res) => {
     const mode = req.query['hub.mode'];
@@ -133,7 +139,22 @@ export function createInstagramWebhookRouter(deps: {
             ignored++; // stale replay or clock nonsense
             continue;
           }
-          const uid = cfg.senderUidMap.get(env.senderId);
+          // A text-only DM that is exactly a link code links that sender to the code's owner. It is consumed here
+          // and never stored as a note.
+          const code = env.kind === 'note' ? normalizeLinkCode(env.text) : null;
+          if (code) {
+            if (!linkAttempts.allow(env.senderId, nowMs)) {
+              deps.stats.linkRejected++;
+              ignored++;
+              continue;
+            }
+            const link = await deps.store.redeemInstagramLinkCode(hashLinkCode(code), env.senderId, nowMs);
+            if (link) deps.stats.linked++;
+            else deps.stats.linkRejected++;
+            logEvent(link ? 'instagram_link_created' : 'instagram_link_rejected', {});
+            continue;
+          }
+          const uid = cfg.senderUidMap.get(env.senderId) ?? (await deps.store.getInstagramLinkBySender(env.senderId))?.uid;
           if (!uid) {
             denied++; // unknown sender: nothing is persisted
             if (cfg.logDeniedSenders) logEvent('instagram_sender_not_paired', { senderId: env.senderId, kind: env.kind });

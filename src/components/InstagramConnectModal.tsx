@@ -1,0 +1,241 @@
+// Connect an Instagram account to this library, once. The page asks the server for a short one-time code; the
+// person sends exactly that code to the connected Instagram account as a DM; the page notices by itself and says
+// so. After that, every Reel they share to the account is saved here.
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, Copy, ExternalLink, Instagram, X } from 'lucide-react';
+import { api, type InstagramLinkCode, type InstagramLinkStatus } from '../lib/api';
+import { FEED_STRINGS } from '../pages/feedStrings';
+import type { LanguageCode } from '../types/neophi';
+
+const POLL_MS = 3000;
+
+export function dmUrlFor(handle: string | null): string | null {
+  return handle && /^[A-Za-z0-9._]{1,30}$/.test(handle) ? `https://ig.me/m/${handle}` : null;
+}
+
+export function InstagramConnectModal({
+  open,
+  lang,
+  status,
+  onStatus,
+  onClose,
+}: {
+  open: boolean;
+  lang: LanguageCode;
+  status: InstagramLinkStatus | null;
+  /** Called with the fresh status whenever it changes (linked, disconnected). */
+  onStatus: (status: InstagramLinkStatus) => void;
+  onClose: () => void;
+}) {
+  const T = FEED_STRINGS[lang].ig;
+  const [code, setCode] = useState<InstagramLinkCode | null>(null);
+  const [phase, setPhase] = useState<'idle' | 'making' | 'error'>('idle');
+  const [now, setNow] = useState(() => Date.now());
+  const [copied, setCopied] = useState(false);
+  const requested = useRef(false);
+
+  const makeCode = useCallback(async () => {
+    setPhase('making');
+    try {
+      const made = await api.createInstagramLinkCode();
+      setNow(Date.now()); // the clock state may be old if the sheet was closed for a while
+      setCode(made);
+      setPhase('idle');
+    } catch {
+      setPhase('error');
+    }
+  }, []);
+
+  // Closing forgets the code, so the next open starts clean.
+  useEffect(() => {
+    if (!open) {
+      requested.current = false;
+      setCode(null);
+      setPhase('idle');
+      setCopied(false);
+    }
+  }, [open]);
+
+  // Opening while not linked makes a code straight away: the person already said they want to connect.
+  useEffect(() => {
+    if (open && status?.available && !status.linked && !requested.current) {
+      requested.current = true;
+      void makeCode();
+    }
+  }, [open, status, makeCode]);
+
+  const expiresMs = code ? new Date(code.expiresAt).getTime() : 0;
+  const expired = Boolean(code) && now >= expiresMs;
+  const linked = Boolean(status?.linked);
+
+  // Count down, and notice the moment the DM has been received.
+  useEffect(() => {
+    if (!open || linked) return;
+    const tick = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(tick);
+  }, [open, linked]);
+
+  useEffect(() => {
+    if (!open || linked || !code || expired) return;
+    let stop = false;
+    const poll = window.setInterval(async () => {
+      try {
+        const next = await api.instagramLink();
+        if (!stop && next.linked) onStatus(next);
+      } catch {
+        /* a missed poll is fine; the next one tries again */
+      }
+    }, POLL_MS);
+    return () => {
+      stop = true;
+      window.clearInterval(poll);
+    };
+  }, [open, linked, code, expired, onStatus]);
+
+  if (!open) return null;
+
+  const handle = status?.handle ?? code?.handle ?? null;
+  const dmUrl = dmUrlFor(handle);
+  const minutesLeft = code ? Math.max(1, Math.ceil((expiresMs - now) / 60000)) : 15;
+
+  const copy = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code.code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* the code is shown selectable, so it can still be copied by hand */
+    }
+  };
+
+  const disconnect = async () => {
+    if (!window.confirm(T.disconnectConfirm)) return;
+    try {
+      await api.unlinkInstagram();
+      if (status) onStatus({ ...status, linked: false, linkedAt: null });
+      requested.current = false;
+    } catch {
+      setPhase('error');
+    }
+  };
+
+  return (
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label={T.modalTitle}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-card ig-modal">
+        <div className="ig-modal-head">
+          <h2 className="serif-title">
+            <Instagram size={22} aria-hidden="true" /> {T.modalTitle}
+          </h2>
+          <button type="button" onClick={onClose} aria-label={T.close}>
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+
+        {!status ? (
+          <p className="muted" role="status">
+            {T.makingCode}
+          </p>
+        ) : !status.available ? (
+          <p className="pill" role="status">
+            {T.notAvailable}
+          </p>
+        ) : linked ? (
+          <div className="ig-linked" role="status">
+            <p className="ig-linked-title">
+              <span className="ig-tick" aria-hidden="true">
+                <Check size={18} />
+              </span>
+              {T.linkedTitle}
+            </p>
+            <p>{T.linkedBody(handle)}</p>
+            <p className="muted">{T.linkedHow}</p>
+            <div className="ig-actions">
+              {dmUrl && (
+                <a className="btn btn-primary" href={dmUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink size={16} aria-hidden="true" /> {T.openInstagram}
+                </a>
+              )}
+              <button type="button" onClick={onClose}>
+                {T.done}
+              </button>
+              <button type="button" className="ig-disconnect" onClick={() => void disconnect()}>
+                {T.disconnect}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <ol className="ig-steps">
+            <li>
+              <span className="ig-step-num" aria-hidden="true">1</span>
+              <div>
+                <p>{T.step1(handle)}</p>
+                {dmUrl && (
+                  <a className="btn" href={dmUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink size={16} aria-hidden="true" /> {T.openInstagram}
+                  </a>
+                )}
+              </div>
+            </li>
+            <li>
+              <span className="ig-step-num" aria-hidden="true">2</span>
+              <div>
+                <p>{T.step2}</p>
+                {phase === 'making' && !code && <p className="muted">{T.makingCode}</p>}
+                {phase === 'error' && (
+                  <p role="alert">
+                    {T.failed}{' '}
+                    <button type="button" onClick={() => void makeCode()}>
+                      {T.tryAgain}
+                    </button>
+                  </p>
+                )}
+                {code && !expired && (
+                  <>
+                    <div className="ig-code" aria-label={code.code}>
+                      {code.code}
+                    </div>
+                    <div className="ig-code-row">
+                      <button type="button" onClick={() => void copy()}>
+                        {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}{' '}
+                        {copied ? T.copied : T.copy}
+                      </button>
+                      <span className="muted">{T.codeHint(minutesLeft)}</span>
+                    </div>
+                  </>
+                )}
+                {code && expired && (
+                  <p role="status">
+                    {T.expired}{' '}
+                    <button type="button" className="btn-primary" onClick={() => void makeCode()}>
+                      {T.newCode}
+                    </button>
+                  </p>
+                )}
+              </div>
+            </li>
+            <li>
+              <span className="ig-step-num" aria-hidden="true">3</span>
+              <div>
+                <p>{T.step3}</p>
+                {code && !expired && (
+                  <p className="ig-wait muted" role="status">
+                    <span className="ig-dot" aria-hidden="true" /> {T.waiting}
+                  </p>
+                )}
+              </div>
+            </li>
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}

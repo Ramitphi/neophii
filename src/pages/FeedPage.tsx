@@ -1,9 +1,11 @@
 // The Feed tab: the user's saves, newest first, one per screen, filtered by category chips.
 // Saves marked Done or put off with Later stay out until they come back. Nothing is counted or invented.
 import { useState } from 'react';
+import { Instagram } from 'lucide-react';
 import { useShellToast } from '../components/AppShell';
 import { MemoryCard, useCategoryPops, useMemoryActions } from '../components/MemoryCard';
 import { CategoryChips } from '../components/CategoryChips';
+import type { InstagramLinkStatus } from '../lib/api';
 import type { StringsTable } from '../lib/i18n';
 import type { Category, LanguageCode, Memory } from '../types/neophi';
 import { FEED_STRINGS } from './feedStrings';
@@ -18,6 +20,8 @@ export function FeedPage({
   onLoadSamples,
   onPatch,
   previewNote,
+  instagram,
+  onConnectInstagram,
 }: {
   memories: Memory[];
   categories: Category[];
@@ -30,9 +34,15 @@ export function FeedPage({
   onPatch: (id: string, patch: Partial<Memory>) => Promise<void>;
   /** Set in the landing-only preview: opening a save needs the server, so this note shows instead. */
   previewNote?: string;
+  /** Saving from Instagram: set only when the server supports it. */
+  instagram?: InstagramLinkStatus | null;
+  onConnectInstagram?: () => void;
 }) {
   const F = FEED_STRINGS[lang];
   const toast = useShellToast();
+  const IG = F.ig;
+  const igAvailable = Boolean(instagram?.available && onConnectInstagram && !previewNote);
+  const igLinked = Boolean(instagram?.linked);
   const [tab, setTab] = useState<string>('all');
   const [loadingSamples, setLoadingSamples] = useState(false);
   const { categoryOf, popOf } = useCategoryPops(categories);
@@ -51,11 +61,31 @@ export function FeedPage({
   if (memories.length === 0) {
     return (
       <div className="ph-welcome">
-        <h2>{F.emptyTitle}</h2>
-        <p>{F.emptyBody}</p>
-        <button type="button" className="ph-try" onClick={capture}>
-          {t.day0SaveNow}
-        </button>
+        {igAvailable && igLinked ? (
+          <>
+            <h2>{IG.welcomeLinkedTitle}</h2>
+            <p>{IG.welcomeLinkedBody(instagram?.handle ?? null)}</p>
+            <p className="ph-ig-wait">
+              <span className="ph-ig-dot" aria-hidden="true" /> {IG.waiting}
+            </p>
+            <button type="button" className="ph-sheet-cancel" onClick={capture}>
+              {t.day0SaveNow}
+            </button>
+          </>
+        ) : (
+          <>
+            <h2>{F.emptyTitle}</h2>
+            <p>{F.emptyBody}</p>
+            {igAvailable && (
+              <button type="button" className="ph-try ph-ig-connect" onClick={onConnectInstagram}>
+                <Instagram size={18} aria-hidden="true" /> {IG.connect}
+              </button>
+            )}
+            <button type="button" className={igAvailable ? 'ph-sheet-cancel' : 'ph-try'} onClick={capture}>
+              {t.day0SaveNow}
+            </button>
+          </>
+        )}
         <button
           type="button"
           className="ph-sheet-cancel"
@@ -86,6 +116,16 @@ export function FeedPage({
         counts={new Map(tabs.map((c) => [c.id, visible.filter((m) => m.categoryId === c.id).length]))}
         allCount={visible.length}
       />
+      {igAvailable && !igLinked && (
+        <button type="button" className="ph-ig-strip" onClick={onConnectInstagram}>
+          <Instagram size={20} aria-hidden="true" />
+          <span>
+            <b>{IG.stripTitle}</b>
+            <small>{IG.stripBody(instagram?.handle ?? null)}</small>
+          </span>
+          <i>{IG.connect}</i>
+        </button>
+      )}
       {shown.length === 0 ? (
         <p className="ph-empty">{F.allCaughtUp}</p>
       ) : (

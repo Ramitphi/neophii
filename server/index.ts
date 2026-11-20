@@ -78,6 +78,8 @@ export function createApp(overrides?: {
       gemini,
       authVerifier: overrides?.authVerifier,
       instagramWebhookConfigured: Boolean(igConfig.appSecret && igConfig.verifyToken && igConfig.recipientId),
+      instagramHandle: igConfig.handle,
+      now: overrides?.instagram?.now,
     })
   );
 
@@ -88,7 +90,8 @@ export function createApp(overrides?: {
   const staticDir = fs.existsSync(clientDir) ? clientDir : distClientDir;
 
   if (fs.existsSync(staticDir)) {
-    app.use(express.static(staticDir));
+    // `extensions` lets /privacy, /terms and /data-deletion serve their .html pages.
+    app.use(express.static(staticDir, { extensions: ['html'] }));
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api') || req.path.startsWith('/webhooks') || req.path.startsWith('/internal')) {
         next();

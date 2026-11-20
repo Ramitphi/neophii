@@ -16,6 +16,7 @@ import { config } from './config.js';
 import { createAuthMiddleware, getUid, type AuthVerifier } from './firebase.js';
 import { buildEmbeddingText, type GeminiService } from './gemini.js';
 import { guardAnalysis, normalizeUserNote } from './guard.js';
+import { buildLinkCodeRecord, createAttemptLimiter, generateLinkCode } from './instagram/link.js';
 import { buildSampleLibrary } from './samples.js';
 import { searchMemories } from './search.js';
 import {
@@ -80,6 +81,9 @@ export interface ApiDeps {
   gemini: GeminiService;
   authVerifier?: AuthVerifier;
   instagramWebhookConfigured?: boolean;
+  /** Public username of the connected Instagram account (no @), shown so people know where to send. */
+  instagramHandle?: string;
+  now?: () => number;
 }
 
 export function createApiRouter(deps: ApiDeps): express.Router {
@@ -107,6 +111,60 @@ export function createApiRouter(deps: ApiDeps): express.Router {
   });
 
   router.use(verifyAuth);
+
+  // ---------- Instagram: link this library to the sender's Instagram account ----------
+  // The page asks for a one-time code; sending exactly that code to the connected account by DM links the sender.
+  const nowMs = deps.now ?? (() => Date.now());
+  const codeRequests = createAttemptLimiter(10, 60 * 60 * 1000);
+  const igHandle = deps.instagramHandle || null;
+  const noStore = (res: express.Response) => res.setHeader('Cache-Control', 'no-store');
+
+  router.get('/instagram/link', async (req, res) => {
+    noStore(res);
+    try {
+      const link = await deps.store.getInstagramLinkForUser(getUid(req));
+      res.json({
+        available: Boolean(deps.instagramWebhookConfigured),
+        handle: igHandle,
+        linked: Boolean(link),
+        linkedAt: link ? new Date(link.linkedAtMs).toISOString() : null,
+      });
+    } catch {
+      res.status(500).json({ error: 'Could not read the Instagram link' });
+    }
+  });
+
+  router.post('/instagram/link-code', async (req, res) => {
+    noStore(res);
+    if (!deps.instagramWebhookConfigured) {
+      res.status(503).json({ error: 'Saving from Instagram is not switched on yet.' });
+      return;
+    }
+    const uid = getUid(req);
+    const at = nowMs();
+    if (!codeRequests.allow(uid, at)) {
+      res.status(429).json({ error: 'Too many codes in a short time. Try again in a while.' });
+      return;
+    }
+    try {
+      const code = generateLinkCode();
+      const record = buildLinkCodeRecord(uid, code, at);
+      await deps.store.createInstagramLinkCode(record);
+      res.json({ code, expiresAt: new Date(record.expiresAtMs).toISOString(), handle: igHandle });
+    } catch {
+      res.status(500).json({ error: 'Could not create a code' });
+    }
+  });
+
+  router.delete('/instagram/link', async (req, res) => {
+    noStore(res);
+    try {
+      const wasLinked = await deps.store.removeInstagramLinkForUser(getUid(req));
+      res.json({ ok: true, wasLinked });
+    } catch {
+      res.status(500).json({ error: 'Could not disconnect' });
+    }
+  });
 
   // Create memory (multipart or JSON)
   router.post(
@@ -579,7 +637,8 @@ export function createApiRouter(deps: ApiDeps): express.Router {
       return;
     }
     const allMemories = await deps.store.listMemories(uid);
-    const projectMemories = allMemories.filter((m) => m.projectIds.includes(project.id));
+    // Saves marked private are never sent to an AI model, including when drafting a project outcome.
+    const projectMemories = allMemories.filter((m) => m.projectIds.includes(project.id) && !m.privateNoAI);
     const sections = await deps.gemini.buildOutcome(
       project.outcomeType,
       project.name,

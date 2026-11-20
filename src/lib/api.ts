@@ -19,6 +19,20 @@ export interface HealthInfo {
   region: string;
 }
 
+/** Whether saving from Instagram is switched on, which account to message, and whether this library is linked. */
+export interface InstagramLinkStatus {
+  available: boolean;
+  handle: string | null;
+  linked: boolean;
+  linkedAt: string | null;
+}
+
+export interface InstagramLinkCode {
+  code: string;
+  expiresAt: string;
+  handle: string | null;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await getAuthToken();
   const headers = new Headers(init?.headers || {});
@@ -87,6 +101,9 @@ export const api = {
       body: JSON.stringify(data),
     }),
   deleteMe: () => apiFetch<{ ok: boolean }>('/me', { method: 'DELETE' }),
+  instagramLink: () => apiFetch<InstagramLinkStatus>('/instagram/link'),
+  createInstagramLinkCode: () => apiFetch<InstagramLinkCode>('/instagram/link-code', { method: 'POST' }),
+  unlinkInstagram: () => apiFetch<{ ok: boolean; wasLinked: boolean }>('/instagram/link', { method: 'DELETE' }),
 };
 
 export async function fetchAuthorizedMediaUrl(memoryId: string, thumb = false): Promise<string | null> {

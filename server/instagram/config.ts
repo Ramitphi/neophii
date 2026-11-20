@@ -8,6 +8,8 @@ export interface InstagramConfig {
   verifyToken: string;
   /** Numeric ID of the connected professional account. Only deliveries to this recipient are processed. */
   recipientId: string;
+  /** Public username of that account (no @), shown on the site so people know where to send. Not a secret. */
+  handle: string;
   /** Pre-approved tester mapping: Instagram-scoped sender ID -> Firebase UID. Unknown senders are denied. */
   senderUidMap: Map<string, string>;
   /** Optional token for the documented Graph message attachment read. Sent only as a header. */
@@ -54,6 +56,12 @@ export function parseSenderUidMap(raw: string | undefined): Map<string, string> 
   return map;
 }
 
+/** An Instagram username (letters, digits, dots, underscores; at most 30), with an optional leading @. */
+export function parseHandle(raw: string | undefined): string {
+  const h = (raw ?? '').trim().replace(/^@/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(h) ? h : '';
+}
+
 const num = (v: string | undefined, fallback: number): number => {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
@@ -70,6 +78,7 @@ export function loadInstagramConfig(env: NodeJS.ProcessEnv = process.env): Insta
     appSecret: env.META_APP_SECRET ?? '',
     verifyToken: env.META_VERIFY_TOKEN ?? '',
     recipientId: (env.META_IG_RECIPIENT_ID ?? '').trim(),
+    handle: parseHandle(env.INSTAGRAM_HANDLE),
     senderUidMap: parseSenderUidMap(env.INSTAGRAM_SENDER_UID_MAP),
     accessToken: env.INSTAGRAM_ACCESS_TOKEN ?? '',
     graphHost: (env.META_GRAPH_HOST || 'graph.instagram.com').trim(),
