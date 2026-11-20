@@ -9,6 +9,7 @@
 #   deploy/staging.sh scheduler      create the Scheduler job (OIDC audience = worker URL, no path) and run it once
 #   deploy/staging.sh vertex-smoke   synthetic MP4 through Vertex with the worker identity (inline and gs://)
 #   deploy/staging.sh accept         tools/staging-acceptance.mjs against the deployed services
+#   deploy/staging.sh web-app        create the Firebase web app "neophi-web" (if none), then run web-config
 #   deploy/staging.sh web-config     read-only: write the Firebase web app config to .env.production (values not printed)
 #   deploy/staging.sh auth-check     read-only: Anonymous sign-in on?, public host in authorized domains?
 #   deploy/staging.sh auth-setup     turn on Anonymous sign-in and add the public host to authorized domains
@@ -184,6 +185,10 @@ cmd_build() {
 
 cmd_deploy() {
   local img="${IMAGE:-$(image)}" va vv
+  echo "Serving revisions before this deploy (for rollback with update-traffic):"
+  for svc in "$PUBLIC_SERVICE" "$WORKER_SERVICE"; do
+    echo "  $svc: $("${G[@]}" run services describe "$svc" --region "$REGION" --format='value(status.traffic[0].revisionName)' 2>/dev/null)"
+  done
   va="$(latest_version "$SECRET_APP")"; vv="$(latest_version "$SECRET_VERIFY")"
   write_env_files "$(service_url "$WORKER_SERVICE")"
   "${G[@]}" run deploy "$WORKER_SERVICE" --region "$REGION" --image "$img" --service-account "$WORKER_SA" \
@@ -272,6 +277,28 @@ cmd_web_config() {
     require("fs").writeFileSync(process.argv[2], Object.entries(v).map(([k, x]) => k + "=" + x).join("\n") + "\n");
     console.log("PASS  .env.production written with 4 values (projectId " + c.projectId + ", not printed otherwise)");
   ' "$cfg" "$ROOT/.env.production"
+}
+
+cmd_web_app() {
+  local apps n op name i
+  apps="$(gapi GET "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps")"
+  api_ok "$apps" "list Firebase web apps (is ${PROJECT} added to Firebase?)"
+  n="$(node -e 'const j=JSON.parse(process.argv[1]);console.log((j.apps||[]).filter(x=>x.state!=="DELETED").length)' "$apps")"
+  if [ "$n" = 0 ]; then
+    op="$(gapi POST "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps" '{"displayName":"neophi-web"}')"
+    api_ok "$op" "create web app"
+    name="$(node -e 'console.log(JSON.parse(process.argv[1]).name||"")' "$op")"
+    for i in $(seq 1 30); do
+      op="$(gapi GET "https://firebase.googleapis.com/v1beta1/${name}")"
+      [ "$(node -e 'console.log(!!JSON.parse(process.argv[1]).done)' "$op")" = true ] && break
+      sleep 2
+    done
+    api_ok "$op" "create web app"
+    echo "PASS  Firebase web app neophi-web created"
+  else
+    echo "INFO  $n Firebase web app(s) already exist; not creating another"
+  fi
+  cmd_web_config
 }
 
 cmd_auth_check() {
@@ -387,6 +414,7 @@ case "${1:-}" in
   scheduler) cmd_scheduler ;;
   vertex-smoke) cmd_vertex_smoke ;;
   accept) cmd_accept ;;
+  web-app) cmd_web_app ;;
   web-config) cmd_web_config ;;
   auth-check) cmd_auth_check ;;
   auth-setup) cmd_auth_setup ;;
@@ -398,5 +426,5 @@ case "${1:-}" in
   rollback) cmd_rollback ;;
   pair-find) cmd_pair_find ;;
   pair-set) cmd_pair_set ;;
-  *) sed -n '2,25p' "$0"; exit 2 ;;
+  *) sed -n '2,26p' "$0"; exit 2 ;;
 esac
