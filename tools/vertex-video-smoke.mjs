@@ -30,9 +30,23 @@ async function ask(ai, mode, part, bytes) {
     return replied;
   } catch (error) {
     const http = typeof error?.status === 'number' ? error.status : null;
-    console.error(JSON.stringify({ provider: 'vertex', mode, ok: false, http, errorType: error?.name ?? 'Error' }));
+    console.error(JSON.stringify({ provider: 'vertex', mode, ok: false, http, errorType: error?.name ?? 'Error', reason: errorReason(error) }));
     return false;
   }
+}
+
+// Google's short reason for a failure (status, reason code, permission or service name), without URLs or long text.
+function errorReason(error) {
+  const text = String(error?.message ?? '');
+  const pick = (re) => text.match(re)?.[1];
+  const parts = [
+    pick(/"status":\s*"([A-Z_]+)"/),
+    pick(/"reason":\s*"([A-Z_]+)"/),
+    pick(/Permission '([a-zA-Z.]+)'/),
+    pick(/"service":\s*"([a-z.]+)"/),
+    pick(/"message":\s*"([^"]{0,160})/) ?? text.slice(0, 160),
+  ].filter(Boolean);
+  return parts.join(' | ').replace(/https?:\/\/\S+/g, '[url]');
 }
 
 if (!project || !model || !source) {
