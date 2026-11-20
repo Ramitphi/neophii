@@ -85,10 +85,11 @@ export function TodayPage({
     <div className="feed-column" style={{ marginTop: 16 }}>
       {/* Category filter tiles */}
       {categories.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="chip-scroller" role="toolbar" aria-label="Filter by category">
           <button
             type="button"
-            className={activeCategory === 'all' ? 'btn-primary' : ''}
+            className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
+            aria-pressed={activeCategory === 'all'}
             onClick={() => setActiveCategory('all')}
           >
             All
@@ -100,10 +101,12 @@ export function TodayPage({
               <button
                 key={cat.id}
                 type="button"
-                className={activeCategory === cat.id ? 'btn-primary' : ''}
+                className={`filter-chip ${activeCategory === cat.id ? 'active' : ''}`}
+                aria-pressed={activeCategory === cat.id}
                 onClick={() => setActiveCategory(cat.id)}
               >
-                {cat.name} ({count})
+                {cat.name}
+                <span className="filter-chip-count">{count}</span>
               </button>
             );
           })}

@@ -50,13 +50,15 @@ export function LibraryPage({
   return (
     <div className="feed-column" style={{ marginTop: 16 }}>
       {/* Horizontal category filter pills */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div className="chip-scroller" role="toolbar" aria-label="Filter by category">
         <button
           type="button"
-          className={activeCategory === 'all' ? 'btn-primary' : ''}
+          className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
+          aria-pressed={activeCategory === 'all'}
           onClick={() => setActiveCategory('all')}
         >
-          All ({memories.length})
+          All
+          <span className="filter-chip-count">{memories.length}</span>
         </button>
         {categories.map((c) => {
           const count = grouped.get(c.id)?.length ?? 0;
@@ -65,10 +67,12 @@ export function LibraryPage({
             <button
               key={c.id}
               type="button"
-              className={activeCategory === c.id ? 'btn-primary' : ''}
+              className={`filter-chip ${activeCategory === c.id ? 'active' : ''}`}
+              aria-pressed={activeCategory === c.id}
               onClick={() => setActiveCategory(c.id)}
             >
-              {c.name} ({count})
+              {c.name}
+              <span className="filter-chip-count">{count}</span>
             </button>
           );
         })}

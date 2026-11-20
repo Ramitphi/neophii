@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Calendar, Download, Trash2, Undo2 } from 'lucide-react';
+import { ReelTile } from '../components/ReelTile';
 import { api, fetchAuthorizedMediaUrl } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
 import type { StringsTable } from '../lib/i18n';
@@ -53,8 +54,6 @@ export function MemoryPage({
           setMediaUrl(u);
         }
       });
-    } else if (memory?.media?.svgThumb) {
-      setMediaUrl(memory.media.svgThumb);
     } else {
       setMediaUrl(null);
     }
@@ -190,7 +189,7 @@ export function MemoryPage({
           </div>
         )}
 
-        {mediaUrl && (memory.media?.kind === 'image' || memory.media?.svgThumb) && (
+        {mediaUrl && memory.media?.kind === 'image' && memory.media.gcsPath && (
           <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', marginBottom: 12 }}>
             <img
               src={mediaUrl}
@@ -211,6 +210,12 @@ export function MemoryPage({
                 }}
               />
             )}
+          </div>
+        )}
+
+        {!memory.media?.gcsPath && (
+          <div style={{ marginBottom: 12 }}>
+            <ReelTile memory={memory} />
           </div>
         )}
 

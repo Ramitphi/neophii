@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Calendar, Check, Clock, ExternalLink, HelpCircle, Pencil, Undo2 } from 'lucide-react';
-import { api, fetchAuthorizedMediaUrl } from '../lib/api';
+import { api } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
 import type { StringsTable } from '../lib/i18n';
 import type { Memory } from '../types/neophi';
+import { ReelTile } from './ReelTile';
 
 export function FeedCard({
   memory,
@@ -18,28 +19,8 @@ export function FeedCard({
   onRefresh: () => void;
   t: StringsTable;
 }) {
-  const [thumbSrc, setThumbSrc] = useState<string | null>(memory.media?.svgThumb ?? null);
   const [showWhy, setShowWhy] = useState(false);
   const [showLater, setShowLater] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    let objUrl: string | null = null;
-    if (!memory.media?.svgThumb && memory.media?.kind === 'image' && memory.media.gcsPath) {
-      void fetchAuthorizedMediaUrl(memory.id, true).then((url) => {
-        if (active && url) {
-          objUrl = url;
-          setThumbSrc(url);
-        }
-      });
-    } else if (memory.media?.svgThumb) {
-      setThumbSrc(memory.media.svgThumb);
-    }
-    return () => {
-      active = false;
-      if (objUrl) URL.revokeObjectURL(objUrl);
-    };
-  }, [memory]);
 
   const markDone = async () => {
     await api.patchMemory(memory.id, { doneAt: new Date().toISOString() });
@@ -53,167 +34,128 @@ export function FeedCard({
     onRefresh();
   };
 
+  const undoIdx = memory.ledger.findIndex(
+    (l) => l.undoable && l.undoAction?.field === 'categoryId'
+  );
+
   const undoAiCategory = async () => {
-    const idx = memory.ledger.findIndex(
-      (l) => l.undoable && l.undoAction?.field === 'categoryId'
-    );
-    if (idx >= 0) {
-      await api.undoLedger(memory.id, idx);
+    if (undoIdx >= 0) {
+      await api.undoLedger(memory.id, undoIdx);
       onRefresh();
     }
   };
 
   return (
     <article className="feed-card">
-      {/* Media frame + floating right action rail */}
       <div className="feed-media-wrap">
-        <div className="feed-media-box" onClick={() => onOpen(memory.id)}>
-          {thumbSrc ? (
-            <img src={thumbSrc} alt={memory.title} className="feed-media-img" />
-          ) : (
-            <div className="feed-media-placeholder">
-              <span className="pill">{memory.platform}</span>
-              <p className="serif-title" style={{ fontSize: '1.25rem', marginTop: 8 }}>
-                {memory.title}
-              </p>
-              {memory.caption && (
-                <p className="muted" style={{ fontSize: '0.9rem', margin: '6px 0 0' }}>
-                  {memory.caption.slice(0, 110)}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        <ReelTile memory={memory} onOpen={() => onOpen(memory.id)} />
 
         <div className="feed-action-rail" aria-label="Quick actions">
-          <button
-            type="button"
-            className="rail-btn"
-            title={t.actionDone}
-            aria-label={t.actionDone}
-            onClick={() => void markDone()}
-          >
-            <Check size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="rail-btn"
-            title={t.actionLater}
-            aria-label={t.actionLater}
-            onClick={() => setShowLater((v) => !v)}
-          >
-            <Clock size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="rail-btn"
-            title={t.actionIcs}
-            aria-label={t.actionIcs}
-            onClick={() => downloadMemoryIcs(memory)}
-          >
-            <Calendar size={18} aria-hidden="true" />
-          </button>
-          {whySeeing && (
+          <div className="rail-item">
+            <button type="button" className="rail-btn" aria-label={t.actionDone} onClick={() => void markDone()}>
+              <Check size={20} aria-hidden="true" />
+            </button>
+            <span className="rail-label">{t.actionDone}</span>
+          </div>
+          <div className="rail-item">
             <button
               type="button"
               className="rail-btn"
-              title={t.whySeeingThis}
-              aria-label={t.whySeeingThis}
-              onClick={() => setShowWhy((v) => !v)}
+              aria-label={t.actionLater}
+              aria-expanded={showLater}
+              onClick={() => setShowLater((v) => !v)}
             >
-              <HelpCircle size={18} aria-hidden="true" />
+              <Clock size={20} aria-hidden="true" />
             </button>
+            <span className="rail-label">{t.actionLater}</span>
+          </div>
+          <div className="rail-item">
+            <button
+              type="button"
+              className="rail-btn"
+              aria-label="Add to calendar (.ics)"
+              onClick={() => downloadMemoryIcs(memory)}
+            >
+              <Calendar size={20} aria-hidden="true" />
+            </button>
+            <span className="rail-label">.ics</span>
+          </div>
+          {whySeeing && (
+            <div className="rail-item">
+              <button
+                type="button"
+                className="rail-btn"
+                aria-label={t.whySeeingThis}
+                aria-expanded={showWhy}
+                onClick={() => setShowWhy((v) => !v)}
+              >
+                <HelpCircle size={20} aria-hidden="true" />
+              </button>
+              <span className="rail-label">Why</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Card body */}
+      {showLater && (
+        <div className="feed-inline-row">
+          <button type="button" onClick={() => void snoozeTo(5)}>Tonight</button>
+          <button type="button" onClick={() => void snoozeTo(48)}>This weekend</button>
+          <button type="button" onClick={() => void snoozeTo(24 * 7)}>Next week</button>
+        </div>
+      )}
+
+      {showWhy && whySeeing && <p className="feed-why">{whySeeing}</p>}
+
       <div className="feed-card-body">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-          <h3 className="serif-title" style={{ fontSize: '1.3rem' }}>
-            {memory.title}
-          </h3>
+        <div className="feed-tags">
+          {memory.chip && <span className="tag tag-strong">{memory.chip}</span>}
+          {memory.sample && <span className="tag">Sample</span>}
+          {memory.ingest === 'link_metadata' && <span className="tag">Link only</span>}
+          {memory.ingest === 'unsupported' && <span className="tag">Source deleted</span>}
         </div>
 
         {memory.note ? (
-          <blockquote className="feed-user-note">“{memory.note}”</blockquote>
-        ) : memory.caption ? (
-          <p className="muted" style={{ margin: 0, fontSize: '0.94rem' }}>
-            {memory.caption}
-          </p>
-        ) : null}
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {memory.chip && <span className="pill">{memory.chip}</span>}
-          {memory.sample && <span className="pill">SAMPLE</span>}
-          {memory.ingest === 'unsupported' && <span className="pill">SOURCE DELETED</span>}
-          {memory.ingest === 'link_metadata' && <span className="pill">LINK ONLY</span>}
-          {memory.analysis?.source_summary && (
-            <span className="pill pill-ai">{t.aiSuggestionPill}</span>
-          )}
-        </div>
+          <div className="feed-user-note">
+            <span className="feed-note-label">{t.laneYourWords}</span>
+            <p className="feed-note-text">“{memory.note}”</p>
+          </div>
+        ) : (
+          <p className="feed-no-note">{t.noNoteAdded}</p>
+        )}
 
         {memory.categoryByAI && memory.categoryWhy && (
-          <div className="ai-panel" style={{ padding: 10, fontSize: '0.86rem' }}>
-            <span>{memory.categoryWhy}</span>
-            {memory.ledger.some((l) => l.undoable && l.undoAction?.field === 'categoryId') && (
-              <button
-                type="button"
-                onClick={() => void undoAiCategory()}
-                style={{ marginLeft: 8, minHeight: 38, padding: '4px 10px' }}
-              >
+          <div className="feed-ai-receipt">
+            <span className="pill pill-ai">{t.aiSuggestionPill}</span>
+            <span className="feed-ai-text">{memory.categoryWhy}</span>
+            {undoIdx >= 0 && (
+              <button type="button" className="feed-ai-undo" onClick={() => void undoAiCategory()}>
                 <Undo2 size={14} aria-hidden="true" />
-                <span>{t.undoLabel}</span>
+                {t.undoLabel}
               </button>
             )}
           </div>
         )}
 
-        {showWhy && whySeeing && (
-          <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-            {whySeeing}
-          </p>
-        )}
-
-        {showLater && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            <button type="button" onClick={() => void snoozeTo(5)}>
-              Tonight
-            </button>
-            <button type="button" onClick={() => void snoozeTo(48)}>
-              This weekend
-            </button>
-            <button type="button" onClick={() => void snoozeTo(24 * 7)}>
-              Next week
-            </button>
-          </div>
-        )}
-
-        {/* Bottom CTA row inspired by the reference feed */}
         <div className="feed-cta-row">
-          <button type="button" className="btn-primary" onClick={() => onOpen(memory.id)}>
+          <button type="button" className="btn-primary feed-open-btn" onClick={() => onOpen(memory.id)}>
             {t.actionOpen}
+          </button>
+          <button type="button" className="feed-note-trigger" onClick={() => onOpen(memory.id)}>
+            <Pencil size={15} aria-hidden="true" />
+            <span>{memory.note ? 'Edit your note…' : 'Add your note…'}</span>
           </button>
           {memory.url && (
             <a
               href={memory.url}
               target="_blank"
               rel="noreferrer"
-              className="btn"
-              title="Open original link"
+              className="btn feed-link-btn"
               aria-label="Open original link"
             >
               <ExternalLink size={16} aria-hidden="true" />
             </a>
           )}
-          <button
-            type="button"
-            className="feed-note-trigger"
-            onClick={() => onOpen(memory.id)}
-          >
-            <Pencil size={15} aria-hidden="true" />
-            <span>{memory.note ? 'Edit note…' : 'Add note…'}</span>
-          </button>
         </div>
       </div>
     </article>

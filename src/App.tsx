@@ -94,16 +94,10 @@ export function App() {
     <div>
       <header className="nav-bar">
         <div className="nav-inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="nav-left">
             <button
               type="button"
-              className="serif-title"
-              style={{
-                fontSize: '1.4rem',
-                border: 'none',
-                background: 'transparent',
-                padding: '4px 8px',
-              }}
+              className="serif-title nav-logo"
               onClick={() => {
                 setSelectedMemoryId(null);
                 setTab('today');
@@ -134,38 +128,24 @@ export function App() {
             </nav>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="nav-right">
             <button
               type="button"
+              className="nav-icon-btn"
               onClick={() => setSearchOpen(true)}
               aria-label={t.searchPlaceholder}
               title={t.searchShortcut}
-              style={{ border: 'none', background: 'transparent', padding: '8px 10px' }}
             >
               <Search size={20} aria-hidden="true" />
             </button>
 
             <button
               type="button"
+              className="nav-icon-btn"
               onClick={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
               aria-label={t.settingsTheme}
-              style={{ border: 'none', background: 'transparent', padding: '8px 10px' }}
             >
               {theme === 'light' ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
-            </button>
-
-            <button
-              type="button"
-              className="btn-primary"
-              aria-label={t.saveButton}
-              onClick={() => {
-                setCaptureFocusUrl(false);
-                setCaptureOpen(true);
-              }}
-              style={{ padding: '8px 12px', borderRadius: 999 }}
-            >
-              <Plus size={18} aria-hidden="true" />
-              <span>{t.saveButton}</span>
             </button>
           </div>
         </div>
