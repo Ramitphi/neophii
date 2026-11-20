@@ -879,6 +879,10 @@ html.lp-root[data-theme='light'] {
 .ph-app .ph-scroll.is-snap {
   scroll-snap-type: y mandatory;
 }
+/* The category chips stick to the top of the Feed; snap each card and the Instagram strip just below them. */
+.ph-app .ph-scroll.is-snap:has(> .ph-chips) {
+  scroll-padding-top: 66px;
+}
 .ph-empty {
   padding: 48px 28px;
   text-align: center;
@@ -2499,11 +2503,12 @@ html.lp-root[data-theme='light'] {
 /* Inside the app shell the strip sits under the category chips and is a snap stop of its own. */
 .ph-app .ph-ig-strip {
   width: auto;
+  flex-wrap: wrap;
   margin: 8px 12px 12px;
   scroll-snap-align: start;
 }
 :is(.lp, .ph-app) .ph-ig-strip > span {
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
   display: grid;
   gap: 2px;

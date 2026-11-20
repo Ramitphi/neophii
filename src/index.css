@@ -1070,10 +1070,12 @@ body {
   border-radius: 12px;
   background: var(--accent-soft);
   text-align: center;
-  font: 700 1.7rem/1.1 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  letter-spacing: 0.06em;
+  /* One line at phone width, so the code is read and typed as one piece. */
+  font: 700 clamp(1.1rem, 6.2vw, 1.7rem)/1.1 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
   user-select: all;
-  word-break: keep-all;
+  white-space: nowrap;
+  overflow-x: auto;
 }
 .ig-code-row {
   display: flex;
