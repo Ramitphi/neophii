@@ -9,6 +9,7 @@
 #   deploy/staging.sh scheduler      create the Scheduler job (OIDC audience = worker URL, no path) and run it once
 #   deploy/staging.sh vertex-smoke   synthetic MP4 through Vertex with the worker identity (inline and gs://)
 #   deploy/staging.sh accept         tools/staging-acceptance.mjs against the deployed services
+#   deploy/staging.sh firebase-check read-only: Firebase and Identity Toolkit APIs on? project added to Firebase?
 #   deploy/staging.sh web-app        create the Firebase web app "neophi-web" (if none), then run web-config
 #   deploy/staging.sh web-config     read-only: write the Firebase web app config to .env.production (values not printed)
 #   deploy/staging.sh auth-check     read-only: Anonymous sign-in on?, public host in authorized domains?
@@ -266,6 +267,7 @@ gapi() {
 cmd_web_config() {
   local apps app cfg
   apps="$(gapi GET "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps")"
+  api_ok "$apps" "list Firebase web apps" || exit 1
   app="$(node -e 'const j=JSON.parse(process.argv[1]||"{}");const a=(j.apps||[]).filter(x=>x.state!=="DELETED");console.log(a.length?a[0].appId:"")' "$apps")"
   [ -n "$app" ] || { echo "FAIL  no Firebase web app in $PROJECT (create one: firebase apps:create WEB neophi-web --project $PROJECT)"; exit 1; }
   cfg="$(gapi GET "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps/${app}/config")"
@@ -277,6 +279,15 @@ cmd_web_config() {
     require("fs").writeFileSync(process.argv[2], Object.entries(v).map(([k, x]) => k + "=" + x).join("\n") + "\n");
     console.log("PASS  .env.production written with 4 values (projectId " + c.projectId + ", not printed otherwise)");
   ' "$cfg" "$ROOT/.env.production"
+}
+
+cmd_firebase_check() {
+  local a p
+  for a in firebase.googleapis.com identitytoolkit.googleapis.com; do
+    if "${G[@]}" services list --enabled --filter="config.name=$a" --format='value(config.name)' | grep -q .; then pass "API $a on"; else fail "API $a off"; fi
+  done
+  p="$(gapi GET "https://firebase.googleapis.com/v1beta1/projects/${PROJECT}")"
+  if api_ok "$p" "project added to Firebase"; then pass "project $PROJECT is a Firebase project"; fi
 }
 
 cmd_web_app() {
@@ -414,6 +425,7 @@ case "${1:-}" in
   scheduler) cmd_scheduler ;;
   vertex-smoke) cmd_vertex_smoke ;;
   accept) cmd_accept ;;
+  firebase-check) cmd_firebase_check ;;
   web-app) cmd_web_app ;;
   web-config) cmd_web_config ;;
   auth-check) cmd_auth_check ;;
@@ -426,5 +438,5 @@ case "${1:-}" in
   rollback) cmd_rollback ;;
   pair-find) cmd_pair_find ;;
   pair-set) cmd_pair_set ;;
-  *) sed -n '2,26p' "$0"; exit 2 ;;
+  *) sed -n '2,27p' "$0"; exit 2 ;;
 esac
