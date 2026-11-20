@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Instagram, X } from 'lucide-react';
 import { AppShell, type ShellTab } from './components/AppShell';
 import { CaptureModal } from './components/CaptureModal';
@@ -10,12 +10,14 @@ import { SearchModal } from './components/SearchModal';
 import { api, type InstagramLinkStatus } from './lib/api';
 import { isInstagramInAppBrowser } from './lib/firebase';
 import { STRINGS } from './lib/i18n';
-import { JourneyPage } from './pages/JourneyPage';
-import { LibraryPage } from './pages/LibraryPage';
-import { MemoryPage } from './pages/MemoryPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { TodayPage } from './pages/TodayPage';
+
+// Pages other than the feed load when first opened, so the first screen is quick.
+const JourneyPage = lazy(() => import('./pages/JourneyPage').then((m) => ({ default: m.JourneyPage })));
+const LibraryPage = lazy(() => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })));
+const MemoryPage = lazy(() => import('./pages/MemoryPage').then((m) => ({ default: m.MemoryPage })));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((m) => ({ default: m.ProjectsPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const TodayPage = lazy(() => import('./pages/TodayPage').then((m) => ({ default: m.TodayPage })));
 import type {
   Category,
   LanguageCode,
@@ -481,7 +483,7 @@ export function App() {
         notice={isIgBrowser ? t.instagramBanner : hasSamples ? F.sampleChip : null}
         snap={tab === 'feed' && !selectedMemoryId}
       >
-        {page}
+        <Suspense fallback={<p className="ph-page muted" role="status">…</p>}>{page}</Suspense>
       </AppShell>
       {modals}
     </>

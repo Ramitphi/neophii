@@ -76,6 +76,14 @@ export function FeedPage({
           <>
             <h2>{F.emptyTitle}</h2>
             <p>{F.emptyBody}</p>
+            <ol className="ph-how" aria-label={IG.howTitle}>
+              {IG.how.map((step, i) => (
+                <li key={step}>
+                  <span aria-hidden="true">{i + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
             {igAvailable && (
               <button type="button" className="ph-try ph-ig-connect" onClick={onConnectInstagram}>
                 <Instagram size={18} aria-hidden="true" /> {IG.connect}

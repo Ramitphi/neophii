@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
 import { config } from './config.js';
@@ -69,6 +70,8 @@ export function createApp(overrides?: {
     app.use('/internal', createInstagramInternalRouter({ worker, store, stats: igStats, verifyCaller: verifyWorkerCaller }));
   }
 
+  // Cloud Run does not compress, so do it here: the app script is about 3.5 times smaller on the wire.
+  app.use(compression());
   app.use(express.json({ limit: '5mb' }));
 
   app.use(
@@ -95,7 +98,16 @@ export function createApp(overrides?: {
 
   if (fs.existsSync(staticDir)) {
     // `extensions` lets /privacy, /terms and /data-deletion serve their .html pages.
-    app.use(express.static(staticDir, { extensions: ['html'] }));
+    app.use(
+      express.static(staticDir, {
+        extensions: ['html'],
+        setHeaders: (res, filePath) => {
+          // Built files have a hash in their name, so they can be cached for a year; the page itself is always fresh.
+          if (filePath.split(path.sep).includes('assets')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          else if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+        },
+      })
+    );
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api') || req.path.startsWith('/webhooks') || req.path.startsWith('/internal')) {
         next();

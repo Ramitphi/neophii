@@ -1,5 +1,5 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, signInAnonymously, type Auth } from 'firebase/auth';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -30,10 +30,13 @@ export async function getAuthToken(): Promise<string> {
     return getLocalDevToken();
   }
   if (!app) {
+    // Loaded on first use, so the landing page does not wait for the sign-in library.
+    const [{ initializeApp }, { getAuth }] = await Promise.all([import('firebase/app'), import('firebase/auth')]);
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
   }
   if (!auth!.currentUser) {
+    const { signInAnonymously } = await import('firebase/auth');
     await signInAnonymously(auth!);
   }
   return auth!.currentUser!.getIdToken();
