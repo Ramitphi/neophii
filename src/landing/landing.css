@@ -2503,3 +2503,17 @@ html.lp-root[data-theme='light'] {
 .lp .ph-ig-dot {
   background: var(--teal);
 }
+
+.lp-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 0.9rem;
+}
+.lp-foot-links a {
+  color: var(--muted);
+  text-underline-offset: 3px;
+}
+.lp-foot-links a:hover {
+  color: var(--ink);
+}
