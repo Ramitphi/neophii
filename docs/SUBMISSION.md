@@ -30,5 +30,11 @@ Instagram message to Meta's webhook, then a Cloud Run service that checks the si
 - For a shared Reel, Meta sends the link and caption, not the video, so the reading uses the caption (and your words); a video sent as a file is read from the video itself.
 - Evaluations so far are small tests, not a benchmark.
 
+## What is next
+These are plans, not part of this build.
+- **Check this Reel.** Many Reels are fake or misleading. Send a Reel only to check it, and Neophi replies in the same conversation with a short, plain verdict: what holds up, what does not, what could not be checked, with the sources named. It says "could not verify" rather than guess, and describes the claim, never accuses a person. A useful AI in the place people already share Reels.
+- **Affiliate income.** When a save is a product, a book, a tool or a place, offer a way to get it and earn a commission, shown apart from the person's own words and the AI's reading, and never inside a verdict about truth.
+- **Plans.** Free analysed saves each month, a personal plan with more saves, projects and checks, a creator plan, and teams later; priced after measuring cost per save.
+
 ## Built with
 Cloud Run, Firestore, Firebase Authentication, Cloud Storage, Vertex AI (Gemini), Cloud Scheduler, Secret Manager, React and TypeScript.
