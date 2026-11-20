@@ -3,7 +3,7 @@
 # Run from the repo root on a machine where gcloud is signed in to the owner's account:
 #
 #   deploy/staging.sh check          read-only: project, APIs, bucket, indexes, accounts, secrets (format only), models
-#   deploy/staging.sh setup          create the worker and scheduler accounts, their roles, and the image repository
+#   deploy/staging.sh setup          create the worker, scheduler and build accounts, their roles, and the image repository
 #   deploy/staging.sh build          build the image with Cloud Build (Firebase web config from .env.production)
 #   deploy/staging.sh deploy         deploy the public service and the private worker
 #   deploy/staging.sh scheduler      create the Scheduler job (OIDC audience = worker URL, no path) and run it once
@@ -30,6 +30,9 @@ SMOKE_JOB="${SMOKE_JOB:-neophi-vertex-smoke}"
 WEB_SA="${WEB_SA:-neophi-app@${PROJECT}.iam.gserviceaccount.com}"
 WORKER_SA="${WORKER_SA:-neophi-worker@${PROJECT}.iam.gserviceaccount.com}"
 SCHED_SA="${SCHED_SA:-neophi-scheduler@${PROJECT}.iam.gserviceaccount.com}"
+# Cloud Build runs as this account (new projects give the default compute account no roles).
+BUILD_SA="${BUILD_SA:-neophi-build@${PROJECT}.iam.gserviceaccount.com}"
+BUILD_BUCKET="${BUILD_BUCKET:-${PROJECT}_cloudbuild}"
 SECRET_APP="${SECRET_APP:-neophi-meta-app-secret}"
 SECRET_VERIFY="${SECRET_VERIFY:-neophi-meta-verify-token}"
 ANALYSIS_MODEL="${ANALYSIS_MODEL:-gemini-3.8-flash}"
@@ -96,7 +99,7 @@ cmd_check() {
   total="$("${G[@]}" firestore indexes composite list --format='value(state)' 2>/dev/null | grep -c . || true)"
   ready="$("${G[@]}" firestore indexes composite list --format='value(state)' 2>/dev/null | grep -c '^READY$' || true)"
   if [ "${total:-0}" -ge 3 ] && [ "$ready" = "$total" ]; then pass "Firestore indexes: $ready of $total READY"; else fail "Firestore indexes: $ready of $total READY (expect 3)"; fi
-  for sa in "$WEB_SA" "$WORKER_SA" "$SCHED_SA"; do
+  for sa in "$WEB_SA" "$WORKER_SA" "$SCHED_SA" "$BUILD_SA"; do
     "${G[@]}" iam service-accounts describe "$sa" --format='value(email)' >/dev/null 2>&1 && pass "account ${sa%%@*} exists" || warn "account ${sa%%@*} missing (setup creates it)"
   done
   # Secret format checks: the value is read into a pipe and only PASS/FAIL is printed.
@@ -142,7 +145,13 @@ cmd_setup() {
     --member="serviceAccount:service-${pn}@gcp-sa-aiplatform.iam.gserviceaccount.com" --role=roles/storage.objectViewer >/dev/null
   "${G[@]}" artifacts repositories describe "$AR_REPO" --location "$REGION" >/dev/null 2>&1 || \
     "${G[@]}" artifacts repositories create "$AR_REPO" --repository-format=docker --location "$REGION" --description="Neophi images"
-  echo "setup done: accounts, roles, Vertex agent bucket read, image repository"
+  # Build account: read the uploaded source, push to the image repository, write build logs. Nothing else.
+  "${G[@]}" iam service-accounts describe "$BUILD_SA" >/dev/null 2>&1 || "${G[@]}" iam service-accounts create neophi-build --display-name="Neophi build"
+  "${G[@]}" storage buckets describe "gs://$BUILD_BUCKET" >/dev/null 2>&1 || "${G[@]}" storage buckets create "gs://$BUILD_BUCKET" --location="$REGION" --uniform-bucket-level-access
+  "${G[@]}" storage buckets add-iam-policy-binding "gs://$BUILD_BUCKET" --member="serviceAccount:$BUILD_SA" --role=roles/storage.objectViewer >/dev/null
+  "${G[@]}" artifacts repositories add-iam-policy-binding "$AR_REPO" --location "$REGION" --member="serviceAccount:$BUILD_SA" --role=roles/artifactregistry.writer >/dev/null
+  "${G[@]}" projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$BUILD_SA" --role=roles/logging.logWriter --condition=None >/dev/null
+  echo "setup done: accounts, roles, Vertex agent bucket read, image repository, build account"
 }
 
 cmd_build() {
@@ -154,7 +163,8 @@ cmd_build() {
   else
     echo "WARN  .env.production missing: building without Firebase web config (sign-in will not work)."
   fi
-  "${G[@]}" builds submit --region "$REGION" --config deploy/cloudbuild.yaml --substitutions "$subs" .
+  "${G[@]}" builds submit --region "$REGION" --config deploy/cloudbuild.yaml --substitutions "$subs" \
+    --service-account "projects/${PROJECT}/serviceAccounts/${BUILD_SA}" --gcs-source-staging-dir "gs://${BUILD_BUCKET}/source" .
   echo "image: $(image)"
 }
 
@@ -258,7 +268,7 @@ cmd_rollback() {
   "${G[@]}" run services delete "$WORKER_SERVICE" --region "$REGION" 2>/dev/null || true
   "${G[@]}" storage rm "gs://$BUCKET/smoke/neophi-sample.mp4" 2>/dev/null || true
   echo "Removed services and jobs. Accounts, roles, the image repository, Firestore, the bucket and secrets are kept;"
-  echo "to remove the two new accounts: gcloud iam service-accounts delete neophi-worker@... / neophi-scheduler@... --project $PROJECT"
+  echo "to remove the new accounts: gcloud iam service-accounts delete neophi-worker@... / neophi-scheduler@... / neophi-build@... --project $PROJECT"
 }
 
 case "${1:-}" in
