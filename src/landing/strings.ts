@@ -5,7 +5,8 @@ import type { LanguageCode } from '../types/neophi';
  * demos are labelled as illustrative samples, and nothing promises residency or instant deletion.
  */
 export interface LandingStrings {
-  nav: { steps: string; evidence: string; search: string; today: string; trust: string };
+  nav: { feed: string; steps: string; evidence: string; search: string; today: string; trust: string };
+  preview: string;
   openApp: string;
   menu: string;
   skip: string;
@@ -30,6 +31,22 @@ export interface LandingStrings {
     noNoteAI: string;
     sample: string;
     categoryWhy: Record<string, string>;
+  };
+
+  feed: {
+    label: string;
+    title: string;
+    sub: string;
+    filterLabel: string;
+    all: string;
+    count: (n: number) => string;
+    whyFrom: (note: string) => string;
+    yourWords: string;
+    linkOnly: string;
+    aiNone: string;
+    open: string;
+    chipLabel: string;
+    savedToday: string;
   };
 
   steps: { title: string; items: { title: string; body: string }[]; artWhy: string; artMatched: string };
@@ -95,8 +112,9 @@ export interface LandingStrings {
 
 export const LANDING: Record<LanguageCode, LandingStrings> = {
   en: {
-    nav: { steps: 'How it goes', evidence: 'Evidence', search: 'Search', today: 'Today', trust: 'Trust' },
+    nav: { feed: 'Feed', steps: 'How it goes', evidence: 'Evidence', search: 'Search', today: 'Today', trust: 'Trust' },
     openApp: 'Open Neophi',
+    preview: 'Preview',
     menu: 'Menu',
     skip: 'Skip to content',
     scroll: 'Scroll',
@@ -132,6 +150,22 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
         wedding: 'why: captions mention sangeet and mehendi',
         cafe: 'why: note says “for my reels corner”',
       },
+    },
+
+    feed: {
+      label: 'Your saves · demo feed',
+      title: 'Your feed, sorted by your own words.',
+      sub: 'Three Reels, each saved with a few words of context. The categories come from those words, not from guessing at the video. Tap a tile to filter.',
+      filterLabel: 'Filter by category',
+      all: 'All saves',
+      count: (n) => (n === 1 ? '1 save' : `${n} saves`),
+      whyFrom: (note) => `why: your note says “${note}”`,
+      yourWords: 'Your context',
+      linkOnly: 'Link only · video not seen',
+      aiNone: 'Nothing is guessed about the video. Until it is analysed, only the link and your note are kept.',
+      open: 'Open on Instagram',
+      chipLabel: 'Your tap',
+      savedToday: 'Saved today',
     },
 
     steps: {
@@ -241,8 +275,9 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
   },
 
   hinglish: {
-    nav: { steps: 'Kaise chalta hai', evidence: 'Saboot', search: 'Search', today: 'Aaj', trust: 'Bharosa' },
+    nav: { feed: 'Feed', steps: 'Kaise chalta hai', evidence: 'Saboot', search: 'Search', today: 'Aaj', trust: 'Bharosa' },
     openApp: 'Neophi kholo',
+    preview: 'Preview',
     menu: 'Menu',
     skip: 'Content pe jao',
     scroll: 'Scroll',
@@ -278,6 +313,22 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
         wedding: 'kyun: captions mein sangeet aur mehendi',
         cafe: 'kyun: note mein “for my reels corner”',
       },
+    },
+
+    feed: {
+      label: 'Tumhare saves · demo feed',
+      title: 'Tumhara feed, tumhare apne shabdon se sort.',
+      sub: 'Teen Reels, har ek do-chaar shabdon ke context ke saath save. Categories unhi shabdon se banti hain, video ka andaaza laga ke nahi. Filter ke liye tile pe tap karo.',
+      filterLabel: 'Category se filter karo',
+      all: 'Saare saves',
+      count: (n) => `${n} save`,
+      whyFrom: (note) => `kyun: tumhare note mein “${note}”`,
+      yourWords: 'Tumhara context',
+      linkOnly: 'Sirf link · video nahi dekha',
+      aiNone: 'Video ke baare mein koi andaaza nahi. Analyse hone tak sirf link aur tumhara note rakha hai.',
+      open: 'Instagram pe kholo',
+      chipLabel: 'Tumhara tap',
+      savedToday: 'Aaj save kiya',
     },
 
     steps: {
@@ -387,8 +438,9 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
   },
 
   hi: {
-    nav: { steps: 'कैसे चलता है', evidence: 'सबूत', search: 'खोज', today: 'आज', trust: 'भरोसा' },
+    nav: { feed: 'फ़ीड', steps: 'कैसे चलता है', evidence: 'सबूत', search: 'खोज', today: 'आज', trust: 'भरोसा' },
     openApp: 'Neophi खोलें',
+    preview: 'प्रीव्यू',
     menu: 'मेन्यू',
     skip: 'सामग्री पर जाएँ',
     scroll: 'नीचे',
@@ -424,6 +476,22 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
         wedding: 'क्यों: कैप्शन में संगीत और मेहंदी',
         cafe: 'क्यों: नोट में “for my reels corner”',
       },
+    },
+
+    feed: {
+      label: 'आपके सेव · डेमो फ़ीड',
+      title: 'आपकी फ़ीड, आपके अपने शब्दों से छँटी।',
+      sub: 'तीन रील्स, हर एक कुछ शब्दों के संदर्भ के साथ सेव। श्रेणियाँ उन्हीं शब्दों से बनती हैं, वीडियो का अंदाज़ा लगाकर नहीं। फ़िल्टर के लिए टाइल पर टैप करें।',
+      filterLabel: 'श्रेणी से फ़िल्टर करें',
+      all: 'सभी सेव',
+      count: (n) => `${n} सेव`,
+      whyFrom: (note) => `क्यों: आपके नोट में “${note}”`,
+      yourWords: 'आपका संदर्भ',
+      linkOnly: 'सिर्फ़ लिंक · वीडियो नहीं देखा',
+      aiNone: 'वीडियो के बारे में कोई अंदाज़ा नहीं। विश्लेषण होने तक सिर्फ़ लिंक और आपका नोट रखा है।',
+      open: 'Instagram पर खोलें',
+      chipLabel: 'आपका टैप',
+      savedToday: 'आज सेव किया',
     },
 
     steps: {

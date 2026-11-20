@@ -23,14 +23,36 @@ type Tab = 'today' | 'library' | 'projects' | 'settings';
 
 const ENTERED_KEY = 'neophi_entered';
 
+/** A landing-only build (VITE_LANDING_PREVIEW=1) for sharing a preview without the API server. */
+const LANDING_PREVIEW = import.meta.env.VITE_LANDING_PREVIEW === '1';
+
+function readStore(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStore(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage blocked: the choice lasts for this page only */
+  }
+}
+
 function shouldShowLanding(): boolean {
+  if (LANDING_PREVIEW) return true;
   if (typeof window === 'undefined') return false;
   if (window.location.hash === '#welcome') return true;
-  try {
-    return localStorage.getItem(ENTERED_KEY) !== '1';
-  } catch {
-    return true;
-  }
+  return readStore(ENTERED_KEY) !== '1';
+}
+
+function initialTheme(): 'light' | 'dark' {
+  const stored = readStore('neophi_theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export function App() {
@@ -38,13 +60,11 @@ export function App() {
   const [tab, setTab] = useState<Tab>('today');
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [lang, setLang] = useState<LanguageCode>(
-    () => (localStorage.getItem('neophi_lang') as LanguageCode) || 'en'
+    () => (readStore('neophi_lang') as LanguageCode) || 'en'
   );
-  const [theme, setTheme] = useState<'light' | 'dark'>(
-    () => (localStorage.getItem('neophi_theme') as 'light' | 'dark') || 'light'
-  );
+  const [theme, setTheme] = useState<'light' | 'dark'>(initialTheme);
   const [readyForHourEnabled, setReadyForHourEnabled] = useState(
-    () => localStorage.getItem('neophi_ready_hour') !== '0'
+    () => readStore('neophi_ready_hour') !== '0'
   );
 
   const [todayFeed, setTodayFeed] = useState<TodayResponse | null>(null);
@@ -61,12 +81,12 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('neophi_theme', theme);
+    writeStore('neophi_theme', theme);
   }, [theme]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-lang', lang);
-    localStorage.setItem('neophi_lang', lang);
+    writeStore('neophi_lang', lang);
   }, [lang]);
 
   useEffect(() => {
@@ -110,11 +130,11 @@ export function App() {
   }, []);
 
   const enterApp = async (withSamples: boolean) => {
-    try {
-      localStorage.setItem(ENTERED_KEY, '1');
-    } catch {
-      /* private mode: the landing page shows again next visit */
+    if (LANDING_PREVIEW) {
+      document.getElementById('lp-feed')?.scrollIntoView({ behavior: 'smooth' });
+      return;
     }
+    writeStore(ENTERED_KEY, '1');
     if (withSamples) {
       await api.loadSamples();
     }
@@ -135,6 +155,7 @@ export function App() {
         theme={theme}
         onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
         onEnter={enterApp}
+        preview={LANDING_PREVIEW}
       />
     );
   }
@@ -252,7 +273,7 @@ export function App() {
             onToggleReadyForHour={() => {
               const next = !readyForHourEnabled;
               setReadyForHourEnabled(next);
-              localStorage.setItem('neophi_ready_hour', next ? '1' : '0');
+              writeStore('neophi_ready_hour', next ? '1' : '0');
             }}
             onOpenMemory={openMemory}
             onOpenCapture={(focusUrl) => {

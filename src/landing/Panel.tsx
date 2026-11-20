@@ -13,6 +13,9 @@ export type VideoName =
   | 'loop_student'
   | 'loop_today';
 
+/** Public assets resolve against the build's base path, so the page also works from a sub-folder. */
+export const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
+
 export const prefersCalm = () =>
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -25,7 +28,7 @@ export function BackdropVideo({ name, eager = false }: { name: VideoName; eager?
     const video = ref.current;
     if (!video || prefersCalm()) return;
     const load = () => {
-      if (!video.getAttribute('src')) video.src = `/video/${name}.mp4`;
+      if (!video.getAttribute('src')) video.src = asset(`video/${name}.mp4`);
     };
     const play = () => void video.play().catch(() => undefined);
     if (eager) {
@@ -60,7 +63,7 @@ export function BackdropVideo({ name, eager = false }: { name: VideoName; eager?
       loop
       playsInline
       preload="none"
-      poster={`/video/posters/${name}.webp`}
+      poster={asset(`video/posters/${name}.webp`)}
       aria-hidden="true"
       tabIndex={-1}
     />

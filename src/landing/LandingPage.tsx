@@ -6,7 +6,8 @@ import { ArrowRight, Menu, Moon, Search, Sun, X } from 'lucide-react';
 import type { LanguageCode } from '../types/neophi';
 import { EvidenceDemo } from './EvidenceDemo';
 import { FadeDemo } from './FadeDemo';
-import { Panel, prefersCalm, scrollPastPanel } from './Panel';
+import { FeedDemo } from './FeedDemo';
+import { asset, Panel, prefersCalm, scrollPastPanel } from './Panel';
 import { Pile } from './Pile';
 import { SearchDemo } from './SearchDemo';
 import { LANDING } from './strings';
@@ -74,8 +75,8 @@ function HeroPanel({
         playsInline
         autoPlay={!prefersCalm()}
         preload="auto"
-        poster="/video/posters/night_hero.webp"
-        src={prefersCalm() ? undefined : '/video/night_hero.mp4'}
+        poster={asset('video/posters/night_hero.webp')}
+        src={prefersCalm() ? undefined : asset('video/night_hero.mp4')}
         aria-hidden="true"
         tabIndex={-1}
       />
@@ -116,7 +117,9 @@ export function LandingPage({
   theme,
   onToggleTheme,
   onEnter,
+  preview = false,
 }: {
+  preview?: boolean;
   lang: LanguageCode;
   onChangeLang: (lang: LanguageCode) => void;
   theme: 'light' | 'dark';
@@ -168,6 +171,7 @@ export function LandingPage({
   };
 
   const nav = [
+    { href: '#lp-feed', label: s.nav.feed },
     { href: '#lp-steps', label: s.nav.steps },
     { href: '#lp-evidence', label: s.nav.evidence },
     { href: '#lp-search', label: s.nav.search },
@@ -185,6 +189,7 @@ export function LandingPage({
         <div className="lp-wrap lp-head-in">
           <a href="#lp-main" className="lp-brand" aria-label="Neophi">
             <Wordmark />
+            {preview && <span className="lp-stamp">{s.preview}</span>}
           </a>
           <nav className={`lp-nav ${menuOpen ? 'is-open' : ''}`} id="lp-nav" aria-label="Sections">
             {nav.map((n) => (
@@ -247,6 +252,17 @@ export function LandingPage({
               <p>{s.pile.body}</p>
             </div>
             <Pile s={s} />
+          </div>
+        </Panel>
+
+        <Panel video="loop_evening" id="lp-feed" className="lp-section" label={s.feed.title}>
+          <div className="lp-wrap">
+            <div className="lp-section-head">
+              <p className="lp-label">{s.feed.label}</p>
+              <h2 className="lp-h2">{s.feed.title}</h2>
+              <p>{s.feed.sub}</p>
+            </div>
+            <FeedDemo s={s} />
           </div>
         </Panel>
 
