@@ -153,6 +153,8 @@ Check: `curl -X POST $WORKER_URL/internal/instagram/worker/run` without a token 
 
 ## Tests
 
+`npm run e2e:local` runs the whole tester journey over real HTTP with no credentials: signed share + exact note, durable intake, worker, stored video, fake model, memory in the tester's own library (and a second run where Meta returns only an HTML page, which must fall back to caption plus exact note). It prints redacted results only.
+
 `npm test` runs the pipeline on fixtures and mocks only (no network to Meta or Google). `tests/firestore-store.emulator.test.ts` runs the same flow against the real `FirestoreStore` on a local emulator and is skipped unless `FIRESTORE_EMULATOR_HOST` is set:
 
 ```bash
