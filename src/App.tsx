@@ -418,6 +418,7 @@ export function App() {
           onOpenLibrary={() => navigate('library')}
           libraryLabel={t.navLibrary}
           saveLabel={t.day0SaveNow}
+          loading={!loaded}
         />
       </div>
     );
