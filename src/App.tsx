@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Compass, FolderKanban, Home, Moon, Plus, Search, Settings, Sun } from 'lucide-react';
 import { CaptureModal } from './components/CaptureModal';
+import { FeedPage } from './pages/FeedPage';
+import { FEED_STRINGS } from './pages/feedStrings';
+import { LandingPage } from './landing/LandingPage';
 import { SearchModal } from './components/SearchModal';
 import { api } from './lib/api';
 import { isInstagramInAppBrowser } from './lib/firebase';
@@ -18,19 +21,54 @@ import type {
   TodayResponse,
 } from './types/neophi';
 
-type Tab = 'today' | 'library' | 'projects' | 'settings';
+type Tab = 'feed' | 'today' | 'library' | 'projects' | 'settings';
+
+const ENTERED_KEY = 'neophi_entered';
+
+/** A landing-only build (VITE_LANDING_PREVIEW=1) for sharing a preview without the API server. */
+const LANDING_PREVIEW = import.meta.env.VITE_LANDING_PREVIEW === '1';
+
+function readStore(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStore(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage blocked: the choice lasts for this page only */
+  }
+}
+
+function shouldShowLanding(): boolean {
+  if (LANDING_PREVIEW) return true;
+  if (typeof window === 'undefined') return false;
+  if (window.location.hash === '#welcome') return true;
+  return readStore(ENTERED_KEY) !== '1';
+}
+
+function initialTheme(): 'light' | 'dark' {
+  const stored = readStore('neophi_theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
 export function App() {
-  const [tab, setTab] = useState<Tab>('today');
+  const [showLanding, setShowLanding] = useState(shouldShowLanding);
+  // Landing-only preview: "Open Neophi" shows the feed with the sample library kept in the page.
+  const [previewData, setPreviewData] = useState<{ memories: Memory[]; categories: Category[] } | null>(null);
+  const [tab, setTab] = useState<Tab>('feed');
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [lang, setLang] = useState<LanguageCode>(
-    () => (localStorage.getItem('neophi_lang') as LanguageCode) || 'en'
+    () => (readStore('neophi_lang') as LanguageCode) || 'en'
   );
-  const [theme, setTheme] = useState<'light' | 'dark'>(
-    () => (localStorage.getItem('neophi_theme') as 'light' | 'dark') || 'light'
-  );
+  const [theme, setTheme] = useState<'light' | 'dark'>(initialTheme);
   const [readyForHourEnabled, setReadyForHourEnabled] = useState(
-    () => localStorage.getItem('neophi_ready_hour') !== '0'
+    () => readStore('neophi_ready_hour') !== '0'
   );
 
   const [todayFeed, setTodayFeed] = useState<TodayResponse | null>(null);
@@ -47,12 +85,12 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('neophi_theme', theme);
+    writeStore('neophi_theme', theme);
   }, [theme]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-lang', lang);
-    localStorage.setItem('neophi_lang', lang);
+    writeStore('neophi_lang', lang);
   }, [lang]);
 
   useEffect(() => {
@@ -80,8 +118,81 @@ export function App() {
   }, [tz, readyForHourEnabled]);
 
   useEffect(() => {
+    if (showLanding) return;
     void refreshAll();
-  }, [refreshAll]);
+  }, [refreshAll, showLanding]);
+
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === '#welcome') {
+        setShowLanding(true);
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const enterApp = async (withSamples: boolean) => {
+    if (LANDING_PREVIEW) {
+      const { buildSampleLibrary } = await import('../server/samples');
+      const lib = buildSampleLibrary();
+      setPreviewData({ memories: lib.memories, categories: lib.categories });
+      window.scrollTo(0, 0);
+      return;
+    }
+    writeStore(ENTERED_KEY, '1');
+    if (withSamples) {
+      await api.loadSamples();
+    }
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    setSelectedMemoryId(null);
+    setTab('feed');
+    setShowLanding(false);
+    window.scrollTo(0, 0);
+  };
+
+  if (LANDING_PREVIEW && previewData) {
+    return (
+      <div className="lp ph-app">
+        <FeedPage
+          memories={previewData.memories}
+          categories={previewData.categories}
+          lang={lang}
+          t={t}
+          theme={theme}
+          onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+          onOpenMemory={() => {}}
+          onOpenCapture={() => {}}
+          onOpenSearch={() => {}}
+          onNavigate={() => {}}
+          onLoadSamples={async () => {}}
+          onPatch={async (id, patch) =>
+            setPreviewData((d) =>
+              d ? { ...d, memories: d.memories.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : d
+            )
+          }
+          previewNote={FEED_STRINGS[lang].previewNote}
+          onLogo={() => setPreviewData(null)}
+        />
+      </div>
+    );
+  }
+
+  if (showLanding) {
+    return (
+      <LandingPage
+        lang={lang}
+        onChangeLang={setLang}
+        theme={theme}
+        onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+        onEnter={enterApp}
+        preview={LANDING_PREVIEW}
+      />
+    );
+  }
 
   const hasSamples = memories.some((m) => m.sample);
   const isIgBrowser = isInstagramInAppBrowser();
@@ -89,6 +200,62 @@ export function App() {
   const openMemory = (id: string) => {
     setSelectedMemoryId(id);
   };
+
+  const modals = (
+    <>
+      <CaptureModal
+        open={captureOpen}
+        initialFocusUrl={captureFocusUrl}
+        onClose={() => setCaptureOpen(false)}
+        onSaved={(mem) => {
+          void refreshAll();
+          setSelectedMemoryId(mem.id);
+        }}
+        t={t}
+      />
+
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onOpenMemory={openMemory}
+        t={t}
+      />
+    </>
+  );
+
+  if (tab === 'feed' && !selectedMemoryId) {
+    return (
+      <>
+        {/* The feed uses the landing page's Mindful-paper tokens (.lp) and phone-feed styles. */}
+        <div className="lp ph-app">
+          <FeedPage
+            memories={memories}
+            categories={categories}
+            lang={lang}
+            t={t}
+            theme={theme}
+            onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+            onOpenMemory={openMemory}
+            onOpenCapture={() => {
+              setCaptureFocusUrl(false);
+              setCaptureOpen(true);
+            }}
+            onOpenSearch={() => setSearchOpen(true)}
+            onNavigate={(next) => setTab(next)}
+            onLoadSamples={async () => {
+              await api.loadSamples();
+              await refreshAll();
+            }}
+            onPatch={async (id, patch) => {
+              await api.patchMemory(id, patch);
+              await refreshAll();
+            }}
+          />
+        </div>
+        {modals}
+      </>
+    );
+  }
 
   return (
     <div>
@@ -100,7 +267,7 @@ export function App() {
               className="serif-title nav-logo"
               onClick={() => {
                 setSelectedMemoryId(null);
-                setTab('today');
+                setTab('feed');
               }}
             >
               {t.appName}
@@ -109,6 +276,7 @@ export function App() {
             <nav className="nav-links" aria-label="Main navigation">
               {(
                 [
+                  { id: 'feed', label: FEED_STRINGS[lang].feed },
                   { id: 'today', label: t.navToday },
                   { id: 'library', label: t.navLibrary },
                 ] as const
@@ -182,7 +350,7 @@ export function App() {
             onToggleReadyForHour={() => {
               const next = !readyForHourEnabled;
               setReadyForHourEnabled(next);
-              localStorage.setItem('neophi_ready_hour', next ? '1' : '0');
+              writeStore('neophi_ready_hour', next ? '1' : '0');
             }}
             onOpenMemory={openMemory}
             onOpenCapture={(focusUrl) => {
@@ -224,23 +392,7 @@ export function App() {
         )}
       </main>
 
-      <CaptureModal
-        open={captureOpen}
-        initialFocusUrl={captureFocusUrl}
-        onClose={() => setCaptureOpen(false)}
-        onSaved={(mem) => {
-          void refreshAll();
-          setSelectedMemoryId(mem.id);
-        }}
-        t={t}
-      />
-
-      <SearchModal
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onOpenMemory={openMemory}
-        t={t}
-      />
+      {modals}
 
       <nav className="bottom-nav" aria-label="Mobile navigation">
         <button

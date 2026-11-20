@@ -102,7 +102,8 @@ button,
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-button:hover:not(:disabled),
+/* The landing page and feed (.lp) style their own hover states. */
+button:hover:not(:disabled):not(.lp *),
 .btn:hover {
   background: var(--surface-muted);
 }
