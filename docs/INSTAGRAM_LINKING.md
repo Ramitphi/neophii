@@ -56,3 +56,13 @@ Open `http://localhost:8099/` (the site: Open Neophi, then Connect Instagram) an
 ## Tests
 
 `tests/instagram-link.test.ts` (16): code format and parsing, API auth and limits, linking and then saving to the right library, single use, expiry, guessing limit, relinking, two people, disconnect, delete-me, and the old map next to links. `tests/firestore-store.emulator.test.ts` has two more for the Firestore store (transaction, replace on relink, removal, TTL field); they run only with the emulator, like the others in that file.
+
+## Try without Instagram (for reviewers and automated testers)
+
+Only approved Instagram testers can message the connected account while the Meta app is in development mode. So that anyone who registers (a signed-in browser is created automatically) can still experience the whole journey, the connect sheet can offer a **simulated** share:
+
+- Switch on with `INSTAGRAM_DEMO_SENDER=1` on the public service. Off by default; the route answers 404 when it is off.
+- The person picks a sample Reel (a recipe with real steps, a place with details, a caption of only hashtags and tags, a home-and-plants one) and optionally types their own words. One tap sends it into **their own library only**, through the same queue, worker and reading as a real share, and the page shows the save straight away.
+- Every such save is marked `dm.simulated = true`, labelled **Simulated Instagram share** on the save page and the feed card, and its ledger line says so. Nothing is ever presented as a real Instagram message.
+- Limits: 8 per person per hour. It never changes how real deliveries are handled: a real share from an unlinked sender is still dropped.
+- Tests: `tests/instagram-demo.test.ts` (6).

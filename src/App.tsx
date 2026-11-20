@@ -313,6 +313,11 @@ export function App() {
         lang={lang}
         status={ig}
         onStatus={onInstagramStatus}
+        onDemoSent={() => {
+          setIgOpen(false);
+          setTab('feed');
+          void refreshAll();
+        }}
         onClose={() => setIgOpen(false)}
       />
 

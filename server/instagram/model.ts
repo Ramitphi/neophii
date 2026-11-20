@@ -28,6 +28,8 @@ export interface InstagramSharePayload {
   unsupported: boolean;
   /** Text sent in the same message as the share, treated as a note with the share's delivery ID. */
   text: string | null;
+  /** Set only on a share made by the "try without Instagram" sender; the save is marked and labelled simulated. */
+  simulated?: boolean;
 }
 
 export interface InstagramEventRecord {

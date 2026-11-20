@@ -224,6 +224,8 @@ export interface MemoryDmSource {
   analysisGeneration: number;
   /** Delivery ID of the DM note currently held in `memory.note`, if any. */
   primaryNoteId: string | null;
+  /** True when the share came from the "try without Instagram" sender, not from Instagram. Always labelled as such. */
+  simulated?: boolean;
 }
 
 /** One DM note, kept exactly as sent and keyed by its own delivery ID. */

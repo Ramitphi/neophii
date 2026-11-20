@@ -18,6 +18,7 @@ export function InstagramConnectModal({
   lang,
   status,
   onStatus,
+  onDemoSent,
   onClose,
 }: {
   open: boolean;
@@ -25,6 +26,8 @@ export function InstagramConnectModal({
   status: InstagramLinkStatus | null;
   /** Called with the fresh status whenever it changes (linked, disconnected). */
   onStatus: (status: InstagramLinkStatus) => void;
+  /** A simulated share was sent and read; the app should refresh and show it. */
+  onDemoSent: () => void;
   onClose: () => void;
 }) {
   const T = FEED_STRINGS[lang].ig;
@@ -33,6 +36,10 @@ export function InstagramConnectModal({
   const [now, setNow] = useState(() => Date.now());
   const [copied, setCopied] = useState(false);
   const requested = useRef(false);
+  const [demoNote, setDemoNote] = useState('');
+  const [demoIndex, setDemoIndex] = useState(0);
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState(false);
 
   const makeCode = useCallback(async () => {
     setPhase('making');
@@ -106,6 +113,20 @@ export function InstagramConnectModal({
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       /* the code is shown selectable, so it can still be copied by hand */
+    }
+  };
+
+  const sendDemo = async () => {
+    setDemoBusy(true);
+    setDemoError(false);
+    try {
+      await api.demoInstagramShare(demoIndex, demoNote);
+      setDemoNote('');
+      onDemoSent();
+    } catch {
+      setDemoError(true);
+    } finally {
+      setDemoBusy(false);
     }
   };
 
@@ -234,6 +255,35 @@ export function InstagramConnectModal({
               </div>
             </li>
           </ol>
+        )}
+
+        {status?.demoAvailable && (
+          <section className="ig-demo" aria-labelledby="ig-demo-title">
+            <h3 id="ig-demo-title">{T.demoTitle}</h3>
+            <p className="muted">{T.demoBody}</p>
+            <label>
+              <span>{T.demoSample}</span>
+              <select value={demoIndex} onChange={(e) => setDemoIndex(Number(e.target.value))} disabled={demoBusy}>
+                {T.demoSamples.map((label, i) => (
+                  <option key={label} value={i}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>{T.demoNote}</span>
+              <textarea value={demoNote} onChange={(e) => setDemoNote(e.target.value)} rows={2} maxLength={500} disabled={demoBusy} />
+            </label>
+            <button type="button" className="btn-primary" onClick={() => void sendDemo()} disabled={demoBusy}>
+              {demoBusy ? T.demoSending : T.demoSend}
+            </button>
+            {demoError && (
+              <p role="alert" className="muted">
+                {T.demoFailed}
+              </p>
+            )}
+          </section>
         )}
       </div>
     </div>

@@ -71,6 +71,7 @@ const igConfig = {
     META_VERIFY_TOKEN: 'demo-verify-token',
     META_IG_RECIPIENT_ID: RECIPIENT,
     INSTAGRAM_HANDLE: HANDLE,
+    INSTAGRAM_DEMO_SENDER: '1',
   }),
   noteSettleMs: 2500, // the real value is 15 s; shorter here so the demo feels live
 };

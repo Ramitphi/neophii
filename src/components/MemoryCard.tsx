@@ -116,8 +116,13 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
           ? `${F.maybe}: ${intent.intent} · ${intent.uncertain ? F.aiNotSure : `${Math.round(intent.confidence * 100)}%`}`
           : memory.analysis?.source_summary || null;
 
-  const status =
-    memory.ingest === 'link_metadata' ? L.linkOnly : memory.ingest === 'unsupported' ? F.unavailable : null;
+  const status = memory.dm?.simulated
+    ? F.ig.simulated
+    : memory.ingest === 'link_metadata'
+      ? L.linkOnly
+      : memory.ingest === 'unsupported'
+        ? F.unavailable
+        : null;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
