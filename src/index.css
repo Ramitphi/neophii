@@ -1504,3 +1504,47 @@ body {
   color: var(--text);
   font: inherit;
 }
+
+/* First-run guidance on the empty feed */
+.ph-how {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+.ph-how li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card, var(--surface)) 92%, transparent);
+  font-size: 0.92rem;
+}
+.ph-how li span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent, #6fd0c7);
+  color: var(--surface, #111);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+/* People who ask their device for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

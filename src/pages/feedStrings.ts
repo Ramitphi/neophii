@@ -101,6 +101,9 @@ export interface InstagramStrings {
   dismiss: string;
   fromInstagram: string;
   manage: string;
+  returnHint: string;
+  howTitle: string;
+  how: [string, string, string];
   demoTitle: string;
   demoBody: string;
   demoNote: string;
@@ -181,6 +184,9 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'Dismiss',
       fromInstagram: 'Saved from Instagram',
       manage: 'Manage',
+      howTitle: 'How it works',
+      how: ['Connect Instagram once with a short code.', 'Share any Reel to the Neophi account and say why, if you like.', 'See it on Journey with your words first.'],
+      returnHint: 'After you send it in Instagram, come back to this tab. Your code stays the same, and the page connects by itself.',
       demoTitle: 'No Instagram account handy?',
       demoBody: 'Try the same journey with a simulated Instagram share. It lands in your own library and is labelled simulated.',
       demoNote: 'Your words (optional)',
@@ -286,6 +292,9 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'Hatao',
       fromInstagram: 'Instagram se save hua',
       manage: 'Manage karo',
+      howTitle: 'Yeh kaise kaam karta hai',
+      how: ['Ek chhote code se Instagram ek baar connect karo.', 'Neophi account ko koi bhi Reel bhejo, aur chaho to kyun likho.', 'Journey mein dekho, tumhare shabd sabse upar.'],
+      returnHint: 'Instagram mein bhejne ke baad is tab par wapas aao. Code wahi rahega, aur page apne aap connect ho jaayega.',
       demoTitle: 'Instagram account nahi hai?',
       demoBody: 'Wahi journey ek simulated Instagram share se try karo. Woh tumhari apni library mein aata hai aur simulated likha hota hai.',
       demoNote: 'Tumhare shabd (optional)',
@@ -391,6 +400,9 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'हटाएँ',
       fromInstagram: 'Instagram से सेव हुआ',
       manage: 'प्रबंधित करें',
+      howTitle: 'यह कैसे काम करता है',
+      how: ['एक छोटे कोड से Instagram एक बार जोड़ें।', 'Neophi अकाउंट को कोई भी रील भेजें, और चाहें तो क्यों लिखें।', 'यात्रा में देखें, आपके शब्द सबसे ऊपर।'],
+      returnHint: 'Instagram में भेजने के बाद इस टैब पर लौट आएँ। कोड वही रहेगा, और पन्ना अपने आप जुड़ जाएगा।',
       demoTitle: 'Instagram अकाउंट नहीं है?',
       demoBody: 'वही यात्रा एक नकली (सिम्युलेटेड) Instagram शेयर से आज़माएँ। वह आपकी अपनी लाइब्रेरी में आता है और “सिम्युलेटेड” लिखा रहता है।',
       demoNote: 'आपके शब्द (वैकल्पिक)',

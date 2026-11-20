@@ -8,6 +8,27 @@ import { FEED_STRINGS } from '../pages/feedStrings';
 import type { LanguageCode } from '../types/neophi';
 
 const POLL_MS = 3000;
+const CODE_KEY = 'neophi_ig_code';
+
+/** The live code is kept in this browser, so going to Instagram and coming back (or a reload) does not issue a new one. */
+function readStoredCode(): InstagramLinkCode | null {
+  try {
+    const raw = localStorage.getItem(CODE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw) as InstagramLinkCode;
+    return c && typeof c.code === 'string' && new Date(c.expiresAt).getTime() > Date.now() + 30_000 ? c : null;
+  } catch {
+    return null;
+  }
+}
+function storeCode(c: InstagramLinkCode | null): void {
+  try {
+    if (c) localStorage.setItem(CODE_KEY, JSON.stringify(c));
+    else localStorage.removeItem(CODE_KEY);
+  } catch {
+    /* storage blocked: the code lasts for this page only */
+  }
+}
 
 export function dmUrlFor(handle: string | null): string | null {
   return handle && /^[A-Za-z0-9._]{1,30}$/.test(handle) ? `https://ig.me/m/${handle}` : null;
@@ -46,6 +67,7 @@ export function InstagramConnectModal({
     try {
       const made = await api.createInstagramLinkCode();
       setNow(Date.now()); // the clock state may be old if the sheet was closed for a while
+      storeCode(made);
       setCode(made);
       setPhase('idle');
     } catch {
@@ -67,13 +89,22 @@ export function InstagramConnectModal({
   useEffect(() => {
     if (open && status?.available && !status.linked && !requested.current) {
       requested.current = true;
-      void makeCode();
+      const kept = readStoredCode();
+      if (kept) {
+        setNow(Date.now());
+        setCode(kept);
+      } else {
+        void makeCode();
+      }
     }
   }, [open, status, makeCode]);
 
   const expiresMs = code ? new Date(code.expiresAt).getTime() : 0;
   const expired = Boolean(code) && now >= expiresMs;
   const linked = Boolean(status?.linked);
+  useEffect(() => {
+    if (linked) storeCode(null);
+  }, [linked]);
 
   // Count down, and notice the moment the DM has been received.
   useEffect(() => {
@@ -96,6 +127,26 @@ export function InstagramConnectModal({
     return () => {
       stop = true;
       window.clearInterval(poll);
+    };
+  }, [open, linked, code, expired, onStatus]);
+
+  // Coming back from Instagram: check at once instead of waiting for the next tick (background tabs are throttled).
+  useEffect(() => {
+    if (!open || linked || !code || expired) return;
+    const check = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const next = await api.instagramLink();
+        if (next.linked) onStatus(next);
+      } catch {
+        /* the next check tries again */
+      }
+    };
+    document.addEventListener('visibilitychange', check);
+    window.addEventListener('focus', check);
+    return () => {
+      document.removeEventListener('visibilitychange', check);
+      window.removeEventListener('focus', check);
     };
   }, [open, linked, code, expired, onStatus]);
 
@@ -248,9 +299,14 @@ export function InstagramConnectModal({
               <div>
                 <p>{T.step3}</p>
                 {code && !expired && (
-                  <p className="ig-wait muted" role="status">
-                    <span className="ig-dot" aria-hidden="true" /> {T.waiting}
-                  </p>
+                  <>
+                    <p className="ig-wait muted" role="status">
+                      <span className="ig-dot" aria-hidden="true" /> {T.waiting}
+                    </p>
+                    <p className="muted" style={{ fontSize: '0.85rem' }}>
+                      {T.returnHint}
+                    </p>
+                  </>
                 )}
               </div>
             </li>
