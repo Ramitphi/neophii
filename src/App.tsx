@@ -54,7 +54,7 @@ function shouldShowLanding(): boolean {
 function initialTheme(): 'light' | 'dark' {
   const stored = readStore('neophi_theme');
   if (stored === 'light' || stored === 'dark') return stored;
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'dark';
 }
 
 export function App() {
