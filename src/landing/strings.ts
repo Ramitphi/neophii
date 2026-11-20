@@ -37,16 +37,37 @@ export interface LandingStrings {
     label: string;
     title: string;
     sub: string;
-    filterLabel: string;
+    phoneLabel: string;
+    tabsLabel: string;
     all: string;
-    count: (n: number) => string;
     whyFrom: (note: string) => string;
-    yourWords: string;
+    yourWordsPill: string;
     linkOnly: string;
     aiNone: string;
-    open: string;
-    chipLabel: string;
+    openReel: string;
+    rail: { open: string; later: string; inLater: string; done: string; undo: string; copy: string };
+    copied: string;
+    copyFailed: string;
+    addContext: string;
+    addContextLabel: string;
+    add: string;
     savedToday: string;
+    savedNow: string;
+    nav: { today: string; search: string; save: string; later: string; done: string };
+    searchPlaceholder: string;
+    empty: { feed: string; later: string; done: string; search: string };
+    sheet: {
+      title: string;
+      link: string;
+      why: string;
+      whyPh: string;
+      save: string;
+      cancel: string;
+      badLink: string;
+      needWhy: string;
+      filed: (cat: string) => string;
+      unsortedWhy: string;
+    };
   };
 
   steps: { title: string; items: { title: string; body: string }[]; artWhy: string; artMatched: string };
@@ -155,17 +176,43 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
     feed: {
       label: 'Your saves · demo feed',
       title: 'Your feed, sorted by your own words.',
-      sub: 'Three Reels, each saved with a few words of context. The categories come from those words, not from guessing at the video. Tap a tile to filter.',
-      filterLabel: 'Filter by category',
-      all: 'All saves',
-      count: (n) => (n === 1 ? '1 save' : `${n} saves`),
+      sub: 'Scroll it like any feed. Each Reel carries the words you saved it with, and the tabs come from those words, not from guessing at the video. Tap + to save one of your own.',
+      phoneLabel: 'Demo of the Neophi feed',
+      tabsLabel: 'Categories',
+      all: 'All',
       whyFrom: (note) => `why: your note says “${note}”`,
-      yourWords: 'Your context',
-      linkOnly: 'Link only · video not seen',
-      aiNone: 'Nothing is guessed about the video. Until it is analysed, only the link and your note are kept.',
-      open: 'Open on Instagram',
-      chipLabel: 'Your tap',
+      yourWordsPill: 'Your words · kept exactly',
+      linkOnly: 'Link only',
+      aiNone: 'AI suggestion: nothing guessed. The video was not seen.',
+      openReel: 'Open Reel',
+      rail: { open: 'Open', later: 'Later', inLater: 'In Later', done: 'Done', undo: 'Undo', copy: 'Copy link' },
+      copied: 'Link copied',
+      copyFailed: 'Copying is blocked here. The link:',
+      addContext: 'Add context…',
+      addContextLabel: 'Add context to this save',
+      add: 'Add',
       savedToday: 'Saved today',
+      savedNow: 'Saved just now',
+      nav: { today: 'Today', search: 'Search', save: 'Save', later: 'Later', done: 'Done' },
+      searchPlaceholder: 'Search your words…',
+      empty: {
+        feed: 'Nothing here yet. Tap + to save a link.',
+        later: 'Nothing in Later. Tap Later on a save to keep it here.',
+        done: 'Nothing marked done yet.',
+        search: 'No save has those words.',
+      },
+      sheet: {
+        title: 'Save a link',
+        link: 'Link',
+        why: 'Why are you saving it?',
+        whyPh: 'e.g. bike to buy, SIP tips, funny',
+        save: 'Save',
+        cancel: 'Cancel',
+        badLink: 'Paste a full link that starts with https://',
+        needWhy: 'Add a few words about why, so it can be sorted.',
+        filed: (cat) => `Saved. Filed under ${cat}.`,
+        unsortedWhy: 'why: none of your words matched a category yet',
+      },
     },
 
     steps: {
@@ -318,17 +365,43 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
     feed: {
       label: 'Tumhare saves · demo feed',
       title: 'Tumhara feed, tumhare apne shabdon se sort.',
-      sub: 'Teen Reels, har ek do-chaar shabdon ke context ke saath save. Categories unhi shabdon se banti hain, video ka andaaza laga ke nahi. Filter ke liye tile pe tap karo.',
-      filterLabel: 'Category se filter karo',
-      all: 'Saare saves',
-      count: (n) => `${n} save`,
+      sub: 'Kisi bhi feed ki tarah scroll karo. Har Reel ke saath woh shabd hain jinse tumne save kiya, aur tabs unhi shabdon se bante hain, video ka andaaza laga ke nahi. Apna save karne ke liye + dabao.',
+      phoneLabel: 'Neophi feed ka demo',
+      tabsLabel: 'Categories',
+      all: 'Sab',
       whyFrom: (note) => `kyun: tumhare note mein “${note}”`,
-      yourWords: 'Tumhara context',
-      linkOnly: 'Sirf link · video nahi dekha',
-      aiNone: 'Video ke baare mein koi andaaza nahi. Analyse hone tak sirf link aur tumhara note rakha hai.',
-      open: 'Instagram pe kholo',
-      chipLabel: 'Tumhara tap',
+      yourWordsPill: 'Tumhare shabd · bilkul waise',
+      linkOnly: 'Sirf link',
+      aiNone: 'AI suggestion: koi andaaza nahi. Video dekha nahi gaya.',
+      openReel: 'Reel kholo',
+      rail: { open: 'Kholo', later: 'Later', inLater: 'Later mein', done: 'Done', undo: 'Undo', copy: 'Link copy' },
+      copied: 'Link copy ho gaya',
+      copyFailed: 'Yahan copy band hai. Link:',
+      addContext: 'Context jodo…',
+      addContextLabel: 'Is save mein context jodo',
+      add: 'Jodo',
       savedToday: 'Aaj save kiya',
+      savedNow: 'Abhi save kiya',
+      nav: { today: 'Aaj', search: 'Search', save: 'Save', later: 'Later', done: 'Done' },
+      searchPlaceholder: 'Apne shabd dhundho…',
+      empty: {
+        feed: 'Abhi kuch nahi. Link save karne ke liye + dabao.',
+        later: 'Later mein kuch nahi. Kisi save pe Later dabao.',
+        done: 'Abhi kuch done nahi.',
+        search: 'In shabdon wala koi save nahi.',
+      },
+      sheet: {
+        title: 'Link save karo',
+        link: 'Link',
+        why: 'Kyun save kar rahe ho?',
+        whyPh: 'jaise bike leni hai, SIP tips, funny',
+        save: 'Save',
+        cancel: 'Cancel',
+        badLink: 'Poora link paste karo jo https:// se shuru ho',
+        needWhy: 'Do shabd likho kyun, taaki sort ho sake.',
+        filed: (cat) => `Save ho gaya. ${cat} mein rakha.`,
+        unsortedWhy: 'kyun: tumhare shabd abhi kisi category se match nahi hue',
+      },
     },
 
     steps: {
@@ -481,17 +554,43 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
     feed: {
       label: 'आपके सेव · डेमो फ़ीड',
       title: 'आपकी फ़ीड, आपके अपने शब्दों से छँटी।',
-      sub: 'तीन रील्स, हर एक कुछ शब्दों के संदर्भ के साथ सेव। श्रेणियाँ उन्हीं शब्दों से बनती हैं, वीडियो का अंदाज़ा लगाकर नहीं। फ़िल्टर के लिए टाइल पर टैप करें।',
-      filterLabel: 'श्रेणी से फ़िल्टर करें',
-      all: 'सभी सेव',
-      count: (n) => `${n} सेव`,
+      sub: 'किसी भी फ़ीड की तरह स्क्रॉल करें। हर रील के साथ वे शब्द हैं जिनसे आपने उसे सेव किया, और टैब उन्हीं शब्दों से बनते हैं, वीडियो का अंदाज़ा लगाकर नहीं। अपना सेव करने के लिए + दबाएँ।',
+      phoneLabel: 'Neophi फ़ीड का डेमो',
+      tabsLabel: 'श्रेणियाँ',
+      all: 'सभी',
       whyFrom: (note) => `क्यों: आपके नोट में “${note}”`,
-      yourWords: 'आपका संदर्भ',
-      linkOnly: 'सिर्फ़ लिंक · वीडियो नहीं देखा',
-      aiNone: 'वीडियो के बारे में कोई अंदाज़ा नहीं। विश्लेषण होने तक सिर्फ़ लिंक और आपका नोट रखा है।',
-      open: 'Instagram पर खोलें',
-      chipLabel: 'आपका टैप',
+      yourWordsPill: 'आपके शब्द · जस के तस',
+      linkOnly: 'सिर्फ़ लिंक',
+      aiNone: 'AI सुझाव: कोई अंदाज़ा नहीं। वीडियो देखा नहीं गया।',
+      openReel: 'रील खोलें',
+      rail: { open: 'खोलें', later: 'बाद में', inLater: 'बाद में रखा', done: 'हो गया', undo: 'वापस', copy: 'लिंक कॉपी' },
+      copied: 'लिंक कॉपी हुआ',
+      copyFailed: 'यहाँ कॉपी बंद है। लिंक:',
+      addContext: 'संदर्भ जोड़ें…',
+      addContextLabel: 'इस सेव में संदर्भ जोड़ें',
+      add: 'जोड़ें',
       savedToday: 'आज सेव किया',
+      savedNow: 'अभी सेव किया',
+      nav: { today: 'आज', search: 'खोज', save: 'सेव', later: 'बाद में', done: 'हो गया' },
+      searchPlaceholder: 'अपने शब्द खोजें…',
+      empty: {
+        feed: 'अभी कुछ नहीं। लिंक सेव करने के लिए + दबाएँ।',
+        later: '“बाद में” में कुछ नहीं। किसी सेव पर “बाद में” दबाएँ।',
+        done: 'अभी कुछ “हो गया” नहीं।',
+        search: 'इन शब्दों वाला कोई सेव नहीं।',
+      },
+      sheet: {
+        title: 'लिंक सेव करें',
+        link: 'लिंक',
+        why: 'आप इसे क्यों सेव कर रहे हैं?',
+        whyPh: 'जैसे बाइक लेनी है, SIP टिप्स, मज़ेदार',
+        save: 'सेव करें',
+        cancel: 'रद्द करें',
+        badLink: 'पूरा लिंक पेस्ट करें जो https:// से शुरू हो',
+        needWhy: 'कुछ शब्द लिखें क्यों, ताकि यह छँट सके।',
+        filed: (cat) => `सेव हुआ। ${cat} में रखा।`,
+        unsortedWhy: 'क्यों: आपके शब्द अभी किसी श्रेणी से मेल नहीं खाते',
+      },
     },
 
     steps: {

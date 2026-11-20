@@ -256,7 +256,7 @@ export function LandingPage({
         </Panel>
 
         <Panel video="loop_evening" id="lp-feed" className="lp-section" label={s.feed.title}>
-          <div className="lp-wrap">
+          <div className="lp-wrap lp-feed-in">
             <div className="lp-section-head">
               <p className="lp-label">{s.feed.label}</p>
               <h2 className="lp-h2">{s.feed.title}</h2>
