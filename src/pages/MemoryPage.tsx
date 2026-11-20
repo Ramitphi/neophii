@@ -3,8 +3,11 @@ import { ArrowLeft, Calendar, Download, Trash2, Undo2 } from 'lucide-react';
 import { ReelTile } from '../components/ReelTile';
 import { api, fetchAuthorizedMediaUrl } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
+import { laterNotes } from '../lib/notes';
 import type { StringsTable } from '../lib/i18n';
-import type { BBox, Category, EvidenceItem, Memory, Project } from '../types/neophi';
+import type { BBox, Category, EvidenceItem, Memory, MemoryChip, Project } from '../types/neophi';
+
+const CHIPS: MemoryChip[] = ['Try', 'Buy', 'Learn', 'Remix', 'Go there', 'Share with', 'Just remember'];
 
 function formatTime(t: number): string {
   const m = Math.floor(t / 60);
@@ -67,6 +70,8 @@ export function MemoryPage({
     return <p className="muted" style={{ marginTop: 24 }}>Loading…</p>;
   }
 
+  const later = laterNotes(memory);
+
   const handleEvidenceClick = (ev: EvidenceItem) => {
     if (ev.bbox) {
       setActiveBBox(ev.bbox);
@@ -109,6 +114,12 @@ export function MemoryPage({
     onRefresh();
   };
 
+  const patch = async (changes: Record<string, unknown>) => {
+    const updated = await api.patchMemory(memory.id, changes);
+    setMemory(updated);
+    onRefresh();
+  };
+
   const setReminderDays = async (days: number) => {
     const dt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     const updated = await api.patchMemory(memory.id, { remindAt: dt.toISOString() });
@@ -125,6 +136,7 @@ export function MemoryPage({
       '',
       '## Your words',
       memory.note ? `> ${memory.note}` : '_No note added._',
+      ...later.map((n) => `> ${n.text}`),
       '',
       '## AI reading',
       memory.analysis?.source_summary || '_None_',
@@ -165,11 +177,15 @@ export function MemoryPage({
         {memory.title}
       </h1>
 
-      {/* LANE 1: SOURCE */}
-      <section className="card" aria-label={t.laneSource}>
-        <h2 className="serif-title" style={{ fontSize: '1.35rem', marginBottom: 12 }}>
-          {t.laneSource}
-        </h2>
+      {/* 1. SOURCE EVIDENCE */}
+      <section className="card memory-lane" aria-labelledby="lane-source">
+        <div className="memory-lane-head">
+          <h2 id="lane-source" className="serif-title">
+            <span className="memory-lane-num" aria-hidden="true">1</span>
+            {t.laneSourceEvidence}
+          </h2>
+          <p className="memory-lane-hint">{t.laneSourceHint}</p>
+        </div>
 
         {memory.ingest === 'link_metadata' && (
           <p className="pill" style={{ marginBottom: 10 }}>
@@ -258,10 +274,11 @@ export function MemoryPage({
         )}
       </section>
 
-      {/* LANE 2: YOUR WORDS */}
-      <section className="user-words-panel" aria-label={t.laneYourWords}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-          <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
+      {/* 2. YOUR WORDS — only what the user wrote, nothing from the AI */}
+      <section className="user-words-panel memory-lane" aria-labelledby="lane-words">
+        <div className="memory-lane-head">
+          <h2 id="lane-words" className="serif-title">
+            <span className="memory-lane-num" aria-hidden="true">2</span>
             {t.laneYourWords}
           </h2>
           <button type="button" onClick={() => setEditingNote((v) => !v)}>
@@ -272,6 +289,7 @@ export function MemoryPage({
         {editingNote ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <textarea
+              id="memory-note-edit"
               rows={3}
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
@@ -289,97 +307,77 @@ export function MemoryPage({
         ) : memory.note ? (
           <blockquote
             style={{
-              margin: '8px 0',
+              margin: '4px 0',
               fontSize: '1.25rem',
               fontFamily: 'var(--font-serif)',
               lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
             }}
           >
             “{memory.note}”
           </blockquote>
         ) : (
-          <p className="muted" style={{ margin: '8px 0' }}>
+          <p className="muted" style={{ margin: '4px 0' }}>
             {t.noNoteAdded}
           </p>
         )}
 
-        <p className="muted" style={{ fontSize: '0.88rem', margin: '8px 0 0' }}>
+        {later.length > 0 && (
+          <ul className="memory-later-notes">
+            {later.map((n) => (
+              <li key={n.deliveryId}>
+                <span className="memory-choice-label">
+                  {t.laterNotesLabel} · {new Date(n.sentAt).toLocaleString()}
+                </span>
+                <blockquote>“{n.text}”</blockquote>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="muted" style={{ fontSize: '0.88rem', margin: 0 }}>
           {t.keptExactly}
         </p>
-
-        {memory.analysis?.note_grounding && memory.note && (
-          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-            <span className="pill">Grounding: {memory.analysis.note_grounding.status}</span>
-            {memory.analysis.note_grounding.explanation && (
-              <span className="muted" style={{ fontSize: '0.9rem' }}>
-                {memory.analysis.note_grounding.explanation}
-              </span>
-            )}
-            {renderEvidenceChips(memory.analysis.note_grounding.evidence)}
-          </div>
-        )}
       </section>
 
-      {/* LANE 3: AI SUGGESTIONS */}
-      <section className="ai-panel" aria-label={t.laneAISuggestions}>
-        <h2 className="serif-title" style={{ fontSize: '1.35rem', marginBottom: 12 }}>
-          {t.laneAISuggestions}
-        </h2>
+      {/* 3. YOUR CHOICES — things only the user sets */}
+      <section className="card memory-lane" aria-labelledby="lane-choices">
+        <div className="memory-lane-head">
+          <h2 id="lane-choices" className="serif-title">
+            <span className="memory-lane-num" aria-hidden="true">3</span>
+            {t.laneYourChoices}
+          </h2>
+          <p className="memory-lane-hint">{t.laneChoicesHint}</p>
+        </div>
 
-        {memory.privateNoAI ? (
-          <p className="muted">Private mode enabled — AI analysis was skipped.</p>
-        ) : !memory.analysis || memory.analysis.inferred_possible_intents.length === 0 ? (
-          <p className="muted">No AI suggestions for this item.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {memory.analysis.inferred_possible_intents.map((item, idx) => (
-              <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <span className="pill pill-ai">{t.aiSuggestionPill}</span>
-                  <span className="muted" style={{ fontSize: '0.88rem' }}>
-                    {item.uncertain ? t.notSureNoEvidence : `${Math.round(item.confidence * 100)}%`}
-                  </span>
-                </div>
-                <p style={{ margin: 0 }}>{item.intent}</p>
-                <div
-                  style={{
-                    height: 6,
-                    borderRadius: 999,
-                    background: 'var(--surface-muted)',
-                    overflow: 'hidden',
-                  }}
+        <div>
+          <span className="memory-choice-label">{t.chipChoiceLabel}</span>
+          <div className="memory-choice-row">
+            {CHIPS.map((chip) => {
+              const active = memory.chip === chip;
+              return (
+                <button
+                  key={chip}
+                  type="button"
+                  className="memory-choice-btn"
+                  aria-pressed={active}
+                  onClick={() => void patch({ chip: active ? null : chip })}
                 >
-                  <div
-                    style={{
-                      width: `${Math.round(item.confidence * 100)}%`,
-                      height: '100%',
-                      background: 'var(--accent)',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {renderEvidenceChips(item.evidence)}
-                </div>
-              </div>
-            ))}
+                  {chip}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </section>
+        </div>
 
-      {/* FILING, PROJECTS, REMINDERS & ACTIONS */}
-      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <div className="memory-choice-row">
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span className="muted" style={{ fontSize: '0.88rem' }}>Category</span>
+            <span className="memory-choice-label" style={{ marginBottom: 0 }}>Category</span>
             <select
+              id="memory-category"
               value={memory.categoryId ?? ''}
-              onChange={async (e) => {
-                const updated = await api.patchMemory(memory.id, {
-                  categoryId: e.target.value || null,
-                });
-                setMemory(updated);
-                onRefresh();
-              }}
+              onChange={(e) => void patch({ categoryId: e.target.value || null })}
               style={{ minHeight: 48, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}
             >
               <option value="">Uncategorized</option>
@@ -390,36 +388,33 @@ export function MemoryPage({
               ))}
             </select>
           </label>
-          {memory.categoryWhy && (
-            <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-              Why this category: {memory.categoryWhy}
-            </p>
+          {memory.categoryByAI && memory.categoryWhy && (
+            <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+              <span className="pill pill-ai">{t.aiSuggestionPill}</span>
+              <span className="muted" style={{ fontSize: '0.9rem' }}>
+                {memory.categoryWhy}
+              </span>
+            </span>
           )}
         </div>
 
         <div>
-          <span className="muted" style={{ fontSize: '0.88rem', display: 'block', marginBottom: 6 }}>
-            Projects
-          </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <span className="memory-choice-label">Projects</span>
+          <div className="memory-choice-row">
+            {projects.length === 0 && <span className="muted">No projects yet.</span>}
             {projects.map((p) => {
               const active = memory.projectIds.includes(p.id);
               return (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={async () => {
-                    const next = active
-                      ? memory.projectIds.filter((id) => id !== p.id)
-                      : [...memory.projectIds, p.id];
-                    const updated = await api.patchMemory(memory.id, { projectIds: next });
-                    setMemory(updated);
-                    onRefresh();
-                  }}
-                  style={{
-                    background: active ? 'var(--accent)' : 'var(--surface)',
-                    color: active ? '#fff' : 'var(--text)',
-                  }}
+                  className="memory-choice-btn"
+                  aria-pressed={active}
+                  onClick={() =>
+                    void patch({
+                      projectIds: active ? memory.projectIds.filter((id) => id !== p.id) : [...memory.projectIds, p.id],
+                    })
+                  }
                 >
                   {p.name}
                 </button>
@@ -428,17 +423,97 @@ export function MemoryPage({
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <span className="muted" style={{ fontSize: '0.88rem' }}>Remind me:</span>
-          <button type="button" onClick={() => void setReminderDays(1)}>Tomorrow</button>
-          <button type="button" onClick={() => void setReminderDays(3)}>Friday</button>
-          <button type="button" onClick={() => void setReminderDays(7)}>In a week</button>
-          <button type="button" onClick={() => downloadMemoryIcs(memory)}>
-            <Calendar size={16} aria-hidden="true" />
-            <span>.ics</span>
-          </button>
+        <div>
+          <span className="memory-choice-label">
+            Remind me{memory.remindAt ? ` · ${new Date(memory.remindAt).toLocaleDateString()}` : ''}
+          </span>
+          <div className="memory-choice-row">
+            <button type="button" onClick={() => void setReminderDays(1)}>Tomorrow</button>
+            <button type="button" onClick={() => void setReminderDays(3)}>In 3 days</button>
+            <button type="button" onClick={() => void setReminderDays(7)}>In a week</button>
+            <button type="button" onClick={() => downloadMemoryIcs(memory)}>
+              <Calendar size={16} aria-hidden="true" />
+              <span>.ics</span>
+            </button>
+          </div>
         </div>
 
+        <label className="memory-private" htmlFor="memory-private">
+          <input
+            id="memory-private"
+            type="checkbox"
+            checked={memory.privateNoAI}
+            onChange={(e) => void patch({ privateNoAI: e.target.checked })}
+          />
+          <span>
+            <strong>{t.privateChoiceLabel}</strong>
+            <span className="memory-lane-hint" style={{ display: 'block' }}>
+              {t.privateChoiceHint}
+            </span>
+          </span>
+        </label>
+      </section>
+
+      {/* 4. AI IDEAS — labelled guesses, kept apart from the user's words and choices */}
+      <section className="ai-panel memory-lane" aria-labelledby="lane-ai">
+        <div className="memory-lane-head">
+          <h2 id="lane-ai" className="serif-title">
+            <span className="memory-lane-num" aria-hidden="true">4</span>
+            {t.laneAIIdeas}
+          </h2>
+          <p className="memory-lane-hint">{t.laneAIHint}</p>
+        </div>
+
+        {memory.privateNoAI ? (
+          <p className="muted" style={{ margin: 0 }}>Private mode is on, so no AI ideas are made for this save.</p>
+        ) : (
+          <>
+            {memory.analysis?.note_grounding && memory.note && memory.analysis.note_grounding.status !== 'not_attempted' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                <span className="pill pill-ai">
+                  {memory.analysis.note_grounding.status === 'grounded' ? 'Your note matches the source' : t.notSureNoEvidence}
+                </span>
+                {memory.analysis.note_grounding.explanation && (
+                  <span className="muted" style={{ fontSize: '0.9rem' }}>
+                    {memory.analysis.note_grounding.explanation}
+                  </span>
+                )}
+                {renderEvidenceChips(memory.analysis.note_grounding.evidence)}
+              </div>
+            )}
+            {!memory.analysis || memory.analysis.inferred_possible_intents.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>No AI ideas for this save.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {memory.analysis.inferred_possible_intents.map((item, idx) => (
+                  <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                      <span className="pill pill-ai">{t.aiSuggestionPill}</span>
+                      <span className="muted" style={{ fontSize: '0.88rem' }}>
+                        {item.uncertain ? t.notSureNoEvidence : `${Math.round(item.confidence * 100)}%`}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0 }}>{item.intent}</p>
+                    <div style={{ height: 6, borderRadius: 999, background: 'var(--surface-muted)', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${Math.round(item.confidence * 100)}%`,
+                          height: '100%',
+                          background: 'var(--accent)',
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{renderEvidenceChips(item.evidence)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      {/* ACTIONS */}
+      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <button type="button" onClick={exportMarkdown}>
             <Download size={16} aria-hidden="true" />

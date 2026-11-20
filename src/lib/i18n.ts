@@ -45,6 +45,16 @@ export interface StringsTable {
   linkOnlyMessage: string;
   unsupportedMessage: string;
   ledgerTitle: string;
+  laneSourceEvidence: string;
+  laneSourceHint: string;
+  laneYourChoices: string;
+  laneChoicesHint: string;
+  laneAIIdeas: string;
+  laneAIHint: string;
+  laterNotesLabel: string;
+  chipChoiceLabel: string;
+  privateChoiceLabel: string;
+  privateChoiceHint: string;
   undoLabel: string;
   settingsTitle: string;
   settingsModels: string;
@@ -111,6 +121,16 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     unsupportedMessage:
       'I could not read this one. Your link and note are kept; upload your own copy to add more.',
     ledgerTitle: 'Ledger',
+    laneSourceEvidence: 'Source evidence',
+    laneSourceHint: 'What was saved, and what in it the AI could point to.',
+    laneYourChoices: 'Your choices',
+    laneChoicesHint: 'Only you set these. Change them any time.',
+    laneAIIdeas: 'AI ideas',
+    laneAIHint: 'Labelled guesses. They never change your words or your choices.',
+    laterNotesLabel: 'Added later by DM',
+    chipChoiceLabel: 'Why you saved it',
+    privateChoiceLabel: 'Keep private (AI off)',
+    privateChoiceHint: 'Nothing about this save is sent to an AI model.',
     undoLabel: 'Undo',
     settingsTitle: 'Settings',
     settingsModels: 'Models in use',
@@ -176,6 +196,16 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     unsupportedMessage:
       'Ise padha nahi ja saka. Aapka link aur note safe hai; aur dekhne ke liye apni copy upload karein.',
     ledgerTitle: 'Hisab (Ledger)',
+    laneSourceEvidence: 'Source aur saboot',
+    laneSourceHint: 'Kya save hua, aur AI usme kis cheez ki taraf ishaara kar paaya.',
+    laneYourChoices: 'Aapke choices',
+    laneChoicesHint: 'Ye sirf aap set karte ho. Kabhi bhi badlo.',
+    laneAIIdeas: 'AI ke ideas',
+    laneAIHint: 'Label wale andaaze. Ye aapke shabd ya choices kabhi nahi badalte.',
+    laterNotesLabel: 'Baad mein DM se joda',
+    chipChoiceLabel: 'Kyun save kiya',
+    privateChoiceLabel: 'Private rakho (AI band)',
+    privateChoiceHint: 'Is save ke baare mein kuch bhi AI model ko nahi bheja jaata.',
     undoLabel: 'Undo',
     settingsTitle: 'Settings',
     settingsModels: 'Chal rahe models',
@@ -241,6 +271,16 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     unsupportedMessage:
       'इसे पढ़ा नहीं जा सका। आपका लिंक और नोट सुरक्षित है; अधिक जानकारी के लिए अपनी कॉपी अपलोड करें।',
     ledgerTitle: 'लेज़र (किसने क्या किया)',
+    laneSourceEvidence: 'स्रोत और सबूत',
+    laneSourceHint: 'क्या सेव हुआ, और AI उसमें किस चीज़ की ओर इशारा कर पाया।',
+    laneYourChoices: 'आपके चुनाव',
+    laneChoicesHint: 'ये सिर्फ़ आप तय करते हैं। कभी भी बदलें।',
+    laneAIIdeas: 'AI के विचार',
+    laneAIHint: 'लेबल वाले अंदाज़े। ये आपके शब्द या चुनाव कभी नहीं बदलते।',
+    laterNotesLabel: 'बाद में DM से जोड़ा',
+    chipChoiceLabel: 'क्यों सेव किया',
+    privateChoiceLabel: 'निजी रखें (AI बंद)',
+    privateChoiceHint: 'इस सेव के बारे में कुछ भी AI मॉडल को नहीं भेजा जाता।',
     undoLabel: 'वापस लें',
     settingsTitle: 'सेटिंग्स',
     settingsModels: 'उपयोग हो रहे मॉडल',

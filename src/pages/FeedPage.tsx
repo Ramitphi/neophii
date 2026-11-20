@@ -33,6 +33,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { fetchAuthorizedMediaUrl } from '../lib/api';
+import { laterNotes } from '../lib/notes';
 import type { StringsTable } from '../lib/i18n';
 import { POPS, popAt, popFor, popVars, type Pop } from '../landing/pop';
 import { LANDING } from '../landing/strings';
@@ -103,6 +104,7 @@ function MemoryCard({ memory, category, pop, lang, t, onOpen, onAct, onAddNote, 
   const PurposeIcon = PURPOSE_ICON[memory.analysis?.purpose ?? 'other'];
   const platform = PLATFORM[memory.platform] ?? PLATFORM.other;
   const intent = memory.analysis?.inferred_possible_intents?.[0];
+  const later = laterNotes(memory);
 
   const aiLine = memory.privateNoAI
     ? F.aiOff
@@ -179,6 +181,16 @@ function MemoryCard({ memory, category, pop, lang, t, onOpen, onAct, onAddNote, 
         )}
       </div>
 
+      {/* The user's exact words come first, directly below the save. */}
+      {memory.note ? <p className="ph-words">{memory.note}</p> : <p className="ph-tagline">{t.noNoteAdded}</p>}
+      {later.length > 0 && (
+        <ul className="ph-more" aria-label={t.laterNotesLabel}>
+          {later.map((n) => (
+            <li key={n.deliveryId}>{n.text}</li>
+          ))}
+        </ul>
+      )}
+
       <div className="ph-info">
         <span className="ph-avatar" aria-hidden="true">
           <PurposeIcon size={24} strokeWidth={1.6} />
@@ -202,7 +214,6 @@ function MemoryCard({ memory, category, pop, lang, t, onOpen, onAct, onAddNote, 
         </div>
       </div>
 
-      {memory.note ? <p className="ph-words">{memory.note}</p> : <p className="ph-tagline">{t.noNoteAdded}</p>}
 
       <div className="ph-pills">
         {memory.note && (

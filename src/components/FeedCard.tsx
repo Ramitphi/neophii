@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
 import type { StringsTable } from '../lib/i18n';
 import type { Memory } from '../types/neophi';
+import { laterNotes } from '../lib/notes';
 import { ReelTile } from './ReelTile';
 
 export function FeedCard({
@@ -21,6 +22,7 @@ export function FeedCard({
 }) {
   const [showWhy, setShowWhy] = useState(false);
   const [showLater, setShowLater] = useState(false);
+  const later = laterNotes(memory);
 
   const markDone = async () => {
     await api.patchMemory(memory.id, { doneAt: new Date().toISOString() });
@@ -97,6 +99,28 @@ export function FeedCard({
         </div>
       </div>
 
+      {/* The user's exact words come first, directly below the save. */}
+      <div className="feed-words-first">
+        {memory.note ? (
+          <div className="feed-user-note">
+            <span className="feed-note-label">{t.laneYourWords}</span>
+            <p className="feed-note-text">“{memory.note}”</p>
+          </div>
+        ) : (
+          <p className="feed-no-note">{t.noNoteAdded}</p>
+        )}
+        {later.length > 0 && (
+          <ul className="feed-later-notes" aria-label={t.laterNotesLabel}>
+            {later.map((n) => (
+              <li key={n.deliveryId}>
+                <span className="feed-note-label">{t.laterNotesLabel}</span>
+                <p className="feed-note-text">“{n.text}”</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {showLater && (
         <div className="feed-inline-row">
           <button type="button" onClick={() => void snoozeTo(5)}>Tonight</button>
@@ -114,15 +138,6 @@ export function FeedCard({
           {memory.ingest === 'link_metadata' && <span className="tag">Link only</span>}
           {memory.ingest === 'unsupported' && <span className="tag">Source deleted</span>}
         </div>
-
-        {memory.note ? (
-          <div className="feed-user-note">
-            <span className="feed-note-label">{t.laneYourWords}</span>
-            <p className="feed-note-text">“{memory.note}”</p>
-          </div>
-        ) : (
-          <p className="feed-no-note">{t.noNoteAdded}</p>
-        )}
 
         {memory.categoryByAI && memory.categoryWhy && (
           <div className="feed-ai-receipt">

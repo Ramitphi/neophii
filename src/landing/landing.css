@@ -1315,7 +1315,7 @@ html.lp-root[data-theme='dark'] {
   color: var(--teal);
 }
 .ph-words {
-  white-space: pre-line;
+  white-space: pre-wrap;
 }
 .ph-welcome {
   display: grid;
@@ -2332,6 +2332,10 @@ html.lp-root[data-theme='dark'] {
 }
 .lp .ph-more {
   border-left-color: var(--acc-deep);
+}
+.ph-more li {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* pills */
