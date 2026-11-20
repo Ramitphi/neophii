@@ -8,6 +8,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../server/index.js';
 import type { InstagramWorker } from '../server/instagram/worker.js';
 import { FirestoreStore } from '../server/store.js';
+import { buildLinkCodeRecord, generateLinkCode, hashLinkCode, LINK_CODE_TTL_MS } from '../server/instagram/link.js';
 import type { Memory } from '../src/types/neophi.js';
 import {
   delivery,
@@ -130,5 +131,60 @@ describe.skipIf(!enabled)('FirestoreStore on the emulator', { timeout: 120_000 }
     await h.settle();
     expect(await h.list(UID_A)).toHaveLength(1);
     expect(await h.store.settleInstagramJob(abandoned[0].id, 'crashed', { status: 'done', outcome: 'late' }, h.clock.now())).toBe(false);
+  });
+
+  it('links an Instagram sender with a one-time code: single use, expiring, replaced on relink, removed on request', async () => {
+    const h = harness();
+    const first = generateLinkCode();
+    const second = generateLinkCode();
+    await h.store.createInstagramLinkCode(buildLinkCodeRecord('uid-web-1', first, T0));
+    // A newer code for the same user cancels the older one.
+    await h.store.createInstagramLinkCode(buildLinkCodeRecord('uid-web-1', second, T0));
+    expect(await h.store.redeemInstagramLinkCode(hashLinkCode(first), 'ig-sender-1', T0 + 1000)).toBeNull();
+    const codeDocs = await db!.collection('instagramLinkCodes').get();
+    expect(codeDocs.docs.every((d) => d.data().expireAt instanceof admin.firestore.Timestamp)).toBe(true);
+    expect(JSON.stringify(codeDocs.docs.map((d) => d.data()))).not.toContain(second);
+
+    const link = await h.store.redeemInstagramLinkCode(hashLinkCode(second), 'ig-sender-1', T0 + 1000);
+    expect(link).toMatchObject({ senderId: 'ig-sender-1', uid: 'uid-web-1', linkedAtMs: T0 + 1000 });
+    expect(await h.store.redeemInstagramLinkCode(hashLinkCode(second), 'ig-sender-2', T0 + 2000)).toBeNull(); // single use
+    expect(await h.store.getInstagramLinkBySender('ig-sender-1')).toMatchObject({ uid: 'uid-web-1' });
+    expect(await h.store.getInstagramLinkForUser('uid-web-1')).toMatchObject({ senderId: 'ig-sender-1' });
+
+    // Expired: refused, and the code is gone.
+    const late = generateLinkCode();
+    await h.store.createInstagramLinkCode(buildLinkCodeRecord('uid-web-2', late, T0));
+    expect(await h.store.redeemInstagramLinkCode(hashLinkCode(late), 'ig-sender-3', T0 + LINK_CODE_TTL_MS + 1)).toBeNull();
+    expect(await h.store.getInstagramLinkBySender('ig-sender-3')).toBeNull();
+
+    // The same user linking another Instagram account replaces the earlier link.
+    const again = generateLinkCode();
+    await h.store.createInstagramLinkCode(buildLinkCodeRecord('uid-web-1', again, T0 + 3000));
+    expect(await h.store.redeemInstagramLinkCode(hashLinkCode(again), 'ig-sender-4', T0 + 4000)).toMatchObject({ uid: 'uid-web-1' });
+    expect(await h.store.getInstagramLinkBySender('ig-sender-1')).toBeNull();
+    expect(await h.store.getInstagramLinkBySender('ig-sender-4')).toMatchObject({ uid: 'uid-web-1' });
+
+    // Removing also drops unused codes.
+    const unused = generateLinkCode();
+    await h.store.createInstagramLinkCode(buildLinkCodeRecord('uid-web-1', unused, T0 + 5000));
+    expect(await h.store.removeInstagramLinkForUser('uid-web-1')).toBe(true);
+    expect(await h.store.getInstagramLinkForUser('uid-web-1')).toBeNull();
+    expect(await h.store.redeemInstagramLinkCode(hashLinkCode(unused), 'ig-sender-5', T0 + 6000)).toBeNull();
+    expect(await h.store.removeInstagramLinkForUser('uid-web-1')).toBe(false);
+  });
+
+  it('a linked share lands in the linked library over the real webhook, and deleting everything unlinks', async () => {
+    const h = harness();
+    const stranger = '1100000000000555';
+    const code = generateLinkCode();
+    await h.store.createInstagramLinkCode(buildLinkCodeRecord('uid-linked-web', code, h.clock.now()));
+    await h.post(delivery(noteMessage({ mid: 'fs-link-code', ts: T0 - 30_000, text: code, sender: stranger })));
+    expect(await h.store.getInstagramLinkBySender(stranger)).toMatchObject({ uid: 'uid-linked-web' });
+    await h.post(delivery(shareMessage({ mid: 'fs-link-share', ts: T0 - 20_000, sender: stranger })));
+    await h.settle();
+    expect(await h.list('uid-linked-web')).toHaveLength(1);
+    expect(await h.list(UID_A)).toHaveLength(0);
+    expect((await request(h.server).delete('/api/me').set('Authorization', 'Bearer uid-linked-web')).status).toBe(200);
+    expect(await h.store.getInstagramLinkBySender(stranger)).toBeNull();
   });
 });

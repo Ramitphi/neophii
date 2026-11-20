@@ -32,7 +32,7 @@ import {
   Youtube,
   type LucideIcon,
 } from 'lucide-react';
-import { fetchAuthorizedMediaUrl } from '../lib/api';
+import { fetchAuthorizedMediaUrl, type InstagramLinkStatus } from '../lib/api';
 import { laterNotes } from '../lib/notes';
 import type { StringsTable } from '../lib/i18n';
 import { POPS, popAt, popFor, popVars, type Pop } from '../landing/pop';
@@ -277,6 +277,8 @@ export function FeedPage({
   onPatch,
   previewNote,
   onLogo,
+  instagram,
+  onConnectInstagram,
 }: {
   memories: Memory[];
   categories: Category[];
@@ -294,9 +296,15 @@ export function FeedPage({
   /** Set in the landing-only preview: actions that need the server show this note instead. */
   previewNote?: string;
   onLogo?: () => void;
+  /** Saving from Instagram: set only when the server supports it. */
+  instagram?: InstagramLinkStatus | null;
+  onConnectInstagram?: () => void;
 }) {
   const L = LANDING[lang].feed;
   const F = FEED_STRINGS[lang];
+  const IG = F.ig;
+  const igAvailable = Boolean(instagram?.available && onConnectInstagram && !previewNote);
+  const igLinked = Boolean(instagram?.linked);
   const [tab, setTab] = useState<string>('all');
   const [toast, setToast] = useState<{ text: string; undo?: () => Promise<void>; link?: string } | null>(null);
   const [loadingSamples, setLoadingSamples] = useState(false);
@@ -396,11 +404,31 @@ export function FeedPage({
         <div className="ph-scroll" ref={scrollRef}>
           {memories.length === 0 ? (
             <div className="ph-welcome">
-              <h2>{F.emptyTitle}</h2>
-              <p>{F.emptyBody}</p>
-              <button type="button" className="ph-try" onClick={openCapture}>
-                {t.day0SaveNow}
-              </button>
+              {igAvailable && igLinked ? (
+                <>
+                  <h2>{IG.welcomeLinkedTitle}</h2>
+                  <p>{IG.welcomeLinkedBody(instagram?.handle ?? null)}</p>
+                  <p className="ph-ig-wait">
+                    <span className="ph-ig-dot" aria-hidden="true" /> {IG.waiting}
+                  </p>
+                  <button type="button" className="ph-sheet-cancel" onClick={openCapture}>
+                    {t.day0SaveNow}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h2>{F.emptyTitle}</h2>
+                  <p>{F.emptyBody}</p>
+                  {igAvailable && (
+                    <button type="button" className="ph-try ph-ig-connect" onClick={onConnectInstagram}>
+                      <Instagram size={18} aria-hidden="true" /> {IG.connect}
+                    </button>
+                  )}
+                  <button type="button" className={igAvailable ? 'ph-sheet-cancel' : 'ph-try'} onClick={openCapture}>
+                    {t.day0SaveNow}
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className="ph-sheet-cancel"
@@ -420,20 +448,32 @@ export function FeedPage({
           ) : shown.length === 0 ? (
             <p className="ph-empty">{F.allCaughtUp}</p>
           ) : (
-            shown.map((m) => (
-              <MemoryCard
-                key={m.id}
-                memory={m}
-                category={m.categoryId ? catById.get(m.categoryId) ?? null : null}
-                pop={(m.categoryId && popByCat.get(m.categoryId)) || popFor(m.id)}
-                lang={lang}
-                t={t}
-                onOpen={(id) => openMemory(id)}
-                onAct={(mem, a) => void act(mem, a)}
-                onAddNote={addNote}
-                onCopy={(u) => void copy(u)}
-              />
-            ))
+            <>
+              {igAvailable && !igLinked && (
+                <button type="button" className="ph-ig-strip" onClick={onConnectInstagram}>
+                  <Instagram size={20} aria-hidden="true" />
+                  <span>
+                    <b>{IG.stripTitle}</b>
+                    <small>{IG.stripBody(instagram?.handle ?? null)}</small>
+                  </span>
+                  <i>{IG.connect}</i>
+                </button>
+              )}
+              {shown.map((m) => (
+                <MemoryCard
+                  key={m.id}
+                  memory={m}
+                  category={m.categoryId ? catById.get(m.categoryId) ?? null : null}
+                  pop={(m.categoryId && popByCat.get(m.categoryId)) || popFor(m.id)}
+                  lang={lang}
+                  t={t}
+                  onOpen={(id) => openMemory(id)}
+                  onAct={(mem, a) => void act(mem, a)}
+                  onAddNote={addNote}
+                  onCopy={(u) => void copy(u)}
+                />
+              ))}
+            </>
           )}
         </div>
 

@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Compass, FolderKanban, Home, Moon, Plus, Search, Settings, Sun } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Compass, FolderKanban, Home, Instagram, Moon, Plus, Search, Settings, Sun, X } from 'lucide-react';
 import { CaptureModal } from './components/CaptureModal';
+import { InstagramConnectModal } from './components/InstagramConnectModal';
 import { FeedPage } from './pages/FeedPage';
 import { FEED_STRINGS } from './pages/feedStrings';
 import { LandingPage } from './landing/LandingPage';
 import { SearchModal } from './components/SearchModal';
-import { api } from './lib/api';
+import { api, type InstagramLinkStatus } from './lib/api';
 import { isInstagramInAppBrowser } from './lib/firebase';
 import { STRINGS } from './lib/i18n';
 import { LibraryPage } from './pages/LibraryPage';
@@ -76,6 +77,14 @@ export function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
+  // Saving from Instagram: link status, the connect sheet, and the "just arrived" notice.
+  const [ig, setIg] = useState<InstagramLinkStatus | null>(null);
+  const [igOpen, setIgOpen] = useState(false);
+  const [arrival, setArrival] = useState<{ id: string; title: string } | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const memoriesRef = useRef<Memory[]>([]);
+  const knownIdsRef = useRef<Set<string> | null>(null);
+
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureFocusUrl, setCaptureFocusUrl] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -115,12 +124,78 @@ export function App() {
     setMemories(mems);
     setCategories(cats);
     setProjects(projs);
+    setLoaded(true);
   }, [tz, readyForHourEnabled]);
 
   useEffect(() => {
     if (showLanding) return;
     void refreshAll();
   }, [refreshAll, showLanding]);
+
+  useEffect(() => {
+    memoriesRef.current = memories;
+  }, [memories]);
+
+  const refreshInstagram = useCallback(async () => {
+    try {
+      setIg(await api.instagramLink());
+    } catch {
+      setIg(null); // an older server without Instagram saving: the feature simply stays hidden
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showLanding || LANDING_PREVIEW) return;
+    void refreshInstagram();
+  }, [showLanding, refreshInstagram]);
+
+  const onInstagramStatus = useCallback((next: InstagramLinkStatus) => {
+    setIg(next);
+    if (next.linked) void refreshAll();
+  }, [refreshAll]);
+
+  // Once Instagram is connected, new saves arrive by themselves: look for them while the page is open and
+  // visible, say so when one lands, and keep a save that is still being read up to date.
+  useEffect(() => {
+    if (showLanding || !loaded || !ig?.linked) return;
+    let busy = false;
+    const look = async () => {
+      if (busy || document.visibilityState !== 'visible') return;
+      busy = true;
+      try {
+        const mems = await api.listMemories();
+        if (knownIdsRef.current === null) knownIdsRef.current = new Set(memoriesRef.current.map((m) => m.id));
+        const known = knownIdsRef.current;
+        const fresh = mems.filter((m) => !known.has(m.id));
+        const sig = (list: Memory[]) => list.map((m) => `${m.id}:${m.updatedAt}`).join('|');
+        if (fresh.length > 0 || sig(mems) !== sig(memoriesRef.current)) {
+          for (const m of mems) known.add(m.id);
+          const newestDm = fresh.filter((m) => m.dm).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+          if (newestDm) setArrival({ id: newestDm.id, title: newestDm.note ?? newestDm.title });
+          await refreshAll();
+          // The new save is the moment the person is waiting for: bring it into view in the feed.
+          if (newestDm) window.requestAnimationFrame(() => document.querySelector('.ph-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }));
+        }
+      } catch {
+        /* a missed look is fine; the next one tries again */
+      } finally {
+        busy = false;
+      }
+    };
+    const timer = window.setInterval(() => void look(), 7000);
+    const onVisible = () => void look();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [showLanding, loaded, ig?.linked, refreshAll]);
+
+  useEffect(() => {
+    if (!arrival) return;
+    const id = window.setTimeout(() => setArrival(null), 12000);
+    return () => window.clearTimeout(id);
+  }, [arrival]);
 
   useEffect(() => {
     const onHash = () => {
@@ -220,6 +295,34 @@ export function App() {
         onOpenMemory={openMemory}
         t={t}
       />
+
+      <InstagramConnectModal
+        open={igOpen}
+        lang={lang}
+        status={ig}
+        onStatus={onInstagramStatus}
+        onClose={() => setIgOpen(false)}
+      />
+
+      {arrival && (
+        <div className="arrival-toast" role="status">
+          <Instagram size={18} aria-hidden="true" />
+          <span className="arrival-text">{FEED_STRINGS[lang].ig.arrived(arrival.title.slice(0, 80))}</span>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              openMemory(arrival.id);
+              setArrival(null);
+            }}
+          >
+            {FEED_STRINGS[lang].ig.view}
+          </button>
+          <button type="button" aria-label={FEED_STRINGS[lang].ig.dismiss} onClick={() => setArrival(null)}>
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </>
   );
 
@@ -250,6 +353,8 @@ export function App() {
               await api.patchMemory(id, patch);
               await refreshAll();
             }}
+            instagram={ig}
+            onConnectInstagram={() => setIgOpen(true)}
           />
         </div>
         {modals}
@@ -339,6 +444,7 @@ export function App() {
             projects={projects}
             onBack={() => setSelectedMemoryId(null)}
             onRefresh={() => void refreshAll()}
+            lang={lang}
             t={t}
           />
         ) : tab === 'today' ? (
@@ -387,6 +493,8 @@ export function App() {
             theme={theme}
             onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
             onRefresh={() => void refreshAll()}
+            instagram={ig}
+            onConnectInstagram={() => setIgOpen(true)}
             t={t}
           />
         )}

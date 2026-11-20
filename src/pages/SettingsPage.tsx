@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Download, Trash2, Upload } from 'lucide-react';
-import { api, type HealthInfo } from '../lib/api';
+import { Download, Instagram, Trash2, Upload } from 'lucide-react';
+import { api, type HealthInfo, type InstagramLinkStatus } from '../lib/api';
+import { FEED_STRINGS } from './feedStrings';
 import type { StringsTable } from '../lib/i18n';
 import { LANDING } from '../landing/strings';
 import type { LanguageCode } from '../types/neophi';
@@ -11,6 +12,8 @@ export function SettingsPage({
   theme,
   onToggleTheme,
   onRefresh,
+  instagram,
+  onConnectInstagram,
   t,
 }: {
   lang: LanguageCode;
@@ -18,8 +21,11 @@ export function SettingsPage({
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onRefresh: () => void;
+  instagram?: InstagramLinkStatus | null;
+  onConnectInstagram?: () => void;
   t: StringsTable;
 }) {
+  const IG = FEED_STRINGS[lang].ig;
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -59,6 +65,22 @@ export function SettingsPage({
       <h1 className="serif-title" style={{ fontSize: '1.8rem' }}>
         {t.settingsTitle}
       </h1>
+
+      {instagram?.available && (
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h2 className="serif-title" style={{ fontSize: '1.25rem' }}>
+            <Instagram size={20} aria-hidden="true" /> {IG.settingsTitle}
+          </h2>
+          <p className="muted" style={{ margin: 0 }}>
+            {instagram.linked ? IG.settingsLinked : IG.settingsNotLinked}
+          </p>
+          <div>
+            <button type="button" className={instagram.linked ? '' : 'btn-primary'} onClick={onConnectInstagram}>
+              {instagram.linked ? IG.manage : IG.connect}
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h2 className="serif-title" style={{ fontSize: '1.25rem' }}>

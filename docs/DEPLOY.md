@@ -182,6 +182,8 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 
 ## 8. Pair a tester
 
+People can now connect their own Instagram from the site (see `docs/INSTAGRAM_LINKING.md`); set `INSTAGRAM_HANDLE` on the public service for that. The manual map below still works and is handy for a first tester.
+
 1. The tester opens the service URL in the browser they will use and saves anything once. Their **Firebase UID** is in Firebase console → Authentication → Users, as the anonymous row created at that time.
 2. Log denied senders, by ID only:
    ```bash
