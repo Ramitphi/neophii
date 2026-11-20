@@ -33,6 +33,34 @@ export interface FeedStrings {
   openOnInstagram: string;
   /** Saving from Instagram: connect once, then share Reels to the account. */
   ig: InstagramStrings;
+  /** The Journey page: every save in one growing tree. */
+  journey: JourneyStrings;
+}
+
+export interface JourneyStrings {
+  nav: string;
+  title: string;
+  subtitle: string;
+  lensThemes: string;
+  lensTime: string;
+  search: string;
+  expandAll: string;
+  collapseAll: string;
+  saves: (n: number) => string;
+  statSaves: string;
+  statBranches: string;
+  statNew: string;
+  statWords: string;
+  newBadge: string;
+  newCount: (n: number) => string;
+  latest: string;
+  emptyTitle: string;
+  emptyBody: string;
+  noMatch: string;
+  withoutWords: string;
+  purposes: { shop: string; learn: string; create: string; travel: string; food: string; try_later: string; other: string };
+  unsorted: string;
+  tip: string;
 }
 
 export interface InstagramStrings {
@@ -144,6 +172,31 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       fromInstagram: 'Saved from Instagram',
       manage: 'Manage',
     },
+    journey: {
+      nav: 'Journey',
+      title: 'Your journey',
+      subtitle: 'Everything you saved, in one place. It grows a new branch whenever your saves do.',
+      lensThemes: 'By theme',
+      lensTime: 'By time',
+      search: 'Search your journey',
+      expandAll: 'Open all',
+      collapseAll: 'Close all',
+      saves: (n) => (n === 1 ? '1 save' : `${n} saves`),
+      statSaves: 'saves',
+      statBranches: 'branches',
+      statNew: 'new this week',
+      statWords: 'with your words',
+      newBadge: 'New',
+      newCount: (n) => `${n} new`,
+      latest: 'Latest',
+      emptyTitle: 'Your journey starts with one save',
+      emptyBody: 'Save a Reel, a link or a screenshot with a few words about why. Your first branch grows right here.',
+      noMatch: 'Nothing on your journey matches that.',
+      withoutWords: 'No words added yet',
+      purposes: { shop: 'Things to buy', learn: 'Things to learn', create: 'Making and content', travel: 'Places and trips', food: 'Food and cooking', try_later: 'To try', other: 'Everything else' },
+      unsorted: 'Not sorted yet',
+      tip: 'Groups come from your own categories and from what each save is about. Nothing here is a guess about why you saved it.',
+    },
   },
   hinglish: {
     feed: 'Feed',
@@ -214,6 +267,31 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       fromInstagram: 'Instagram se save hua',
       manage: 'Manage karo',
     },
+    journey: {
+      nav: 'Journey',
+      title: 'Tumhari journey',
+      subtitle: 'Jo bhi save kiya, ek jagah. Jaise saves badhte hain, nayi branch ugti hai.',
+      lensThemes: 'Theme se',
+      lensTime: 'Samay se',
+      search: 'Journey mein dhundo',
+      expandAll: 'Sab kholo',
+      collapseAll: 'Sab band karo',
+      saves: (n) => (n === 1 ? '1 save' : `${n} saves`),
+      statSaves: 'saves',
+      statBranches: 'branches',
+      statNew: 'is hafte naye',
+      statWords: 'tumhare shabdon ke saath',
+      newBadge: 'Naya',
+      newCount: (n) => `${n} naye`,
+      latest: 'Sabse naya',
+      emptyTitle: 'Journey ek save se shuru hoti hai',
+      emptyBody: 'Reel, link ya screenshot do shabdon ke saath save karo ki kyun. Pehli branch yahin ugegi.',
+      noMatch: 'Journey mein aisa kuch nahi mila.',
+      withoutWords: 'Abhi shabd nahi jode',
+      purposes: { shop: 'Kharidne wali cheezein', learn: 'Seekhne wali cheezein', create: 'Banana aur content', travel: 'Jagah aur trips', food: 'Khana aur recipes', try_later: 'Try karna hai', other: 'Baaki sab' },
+      unsorted: 'Abhi sort nahi hua',
+      tip: 'Groups tumhari apni categories aur har save kis baare mein hai usse bante hain. Yahan kyun save kiya, iska koi andaza nahi hai.',
+    },
   },
   hi: {
     feed: 'फ़ीड',
@@ -283,6 +361,31 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'हटाएँ',
       fromInstagram: 'Instagram से सेव हुआ',
       manage: 'प्रबंधित करें',
+    },
+    journey: {
+      nav: 'यात्रा',
+      title: 'आपकी यात्रा',
+      subtitle: 'जो भी सेव किया, एक जगह। जैसे सेव बढ़ते हैं, नई शाखा उगती है।',
+      lensThemes: 'विषय के अनुसार',
+      lensTime: 'समय के अनुसार',
+      search: 'यात्रा में खोजें',
+      expandAll: 'सब खोलें',
+      collapseAll: 'सब बंद करें',
+      saves: (n) => `${n} सेव`,
+      statSaves: 'सेव',
+      statBranches: 'शाखाएँ',
+      statNew: 'इस हफ़्ते नए',
+      statWords: 'आपके शब्दों के साथ',
+      newBadge: 'नया',
+      newCount: (n) => `${n} नए`,
+      latest: 'सबसे नया',
+      emptyTitle: 'यात्रा एक सेव से शुरू होती है',
+      emptyBody: 'रील, लिंक या स्क्रीनशॉट कुछ शब्दों के साथ सेव करें कि क्यों। पहली शाखा यहीं उगेगी।',
+      noMatch: 'यात्रा में ऐसा कुछ नहीं मिला।',
+      withoutWords: 'अभी शब्द नहीं जोड़े',
+      purposes: { shop: 'खरीदने की चीज़ें', learn: 'सीखने की चीज़ें', create: 'बनाना और कंटेंट', travel: 'जगहें और यात्राएँ', food: 'खाना और रेसिपी', try_later: 'आज़माना है', other: 'बाकी सब' },
+      unsorted: 'अभी छँटा नहीं',
+      tip: 'समूह आपकी अपनी श्रेणियों और हर सेव के विषय से बनते हैं। आपने क्यों सेव किया, इसका यहाँ कोई अंदाज़ा नहीं है।',
     },
   },
 };
