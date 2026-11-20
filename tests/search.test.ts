@@ -51,7 +51,7 @@ describe('search & privacy guarantees', () => {
       authVerifier: async (t) => t,
     });
 
-    return { app, embedMock, analyzeMock };
+    return { app, embedMock, analyzeMock, gemini };
   }
 
   it('finds the deleted sample by its note and finds Sangeet sample for Hinglish query', async () => {
@@ -97,6 +97,33 @@ describe('search & privacy guarantees', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(analyzeMock).not.toHaveBeenCalled();
     expect(embedMock).not.toHaveBeenCalled();
+  });
+
+  it('never sends privateNoAI memories to the project outcome model call', async () => {
+    const { app, gemini } = setupApp();
+    const auth = { Authorization: 'Bearer uid-outcome' };
+
+    const project = await request(app)
+      .post('/api/projects')
+      .set(auth)
+      .send({ name: 'Trip', description: 'Weekend plan', outcomeType: 'itinerary' });
+    expect(project.status).toBe(201);
+    const projectIds = [project.body.id];
+
+    const shared = await request(app).post('/api/memories').set(auth).send({ url: 'https://example.com/open', note: 'open note', projectIds });
+    const hidden = await request(app)
+      .post('/api/memories')
+      .set(auth)
+      .send({ url: 'https://example.com/secret', note: 'secret note', projectIds, privateNoAI: true });
+    expect(shared.status).toBe(201);
+    expect(hidden.status).toBe(201);
+
+    const outcome = await request(app).post(`/api/projects/${project.body.id}/outcome`).set(auth).send();
+    expect(outcome.status).toBe(200);
+
+    const sent = vi.mocked(gemini.buildOutcome).mock.calls[0][3].map((m) => m.id);
+    expect(sent).toContain(shared.body.id);
+    expect(sent).not.toContain(hidden.body.id);
   });
 
   it('isolates search results strictly by uid', async () => {

@@ -1,20 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Neophi Terms</title>
 <meta name="description" content="Short terms for the Neophi prototype.">
+<meta name="theme-color" content="#1c1815">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap">
 <link rel="stylesheet" href="/legal.css">
+<script>
+  // Follow the theme chosen in the app (espresso dark by default).
+  try { if (localStorage.getItem('neophi_theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+</script>
 </head>
 <body>
-<main>
-<header>
-  <a class="brand" href="/">Neophi<i></i></a>
-  <h1>Terms</h1>
-  <p class="meta">Last updated 20 November 2026</p>
+<header class="head">
+  <div class="head-in">
+    <a class="wordmark" href="/">Neophi<i aria-hidden="true"></i></a>
+    <a class="open" href="/">Open Neophi</a>
+  </div>
 </header>
+<main>
+<p class="eyebrow">Terms</p>
+<h1>Terms of service</h1>
+<p class="meta">Last updated 20 November 2026</p>
+<p class="lede">Short terms for a prototype.</p>
 
 <h2>What this is</h2>
 <p>Neophi is a prototype built for the Startup Buildathon India 2026 and shown for evaluation. It is provided as it is, with no promise that it will keep running or that data saved in it will be kept.</p>
@@ -29,12 +42,21 @@
 <p>Neophi is not affiliated with or endorsed by Instagram or Meta. When you use the Instagram connection, Instagram's own terms apply as well as these.</p>
 
 <h2>Sample content</h2>
-<p>Sample saves are marked "Sample" and are invented, apart from public links the team chose as examples.</p>
+<p>Sample saves are marked "Sample". Their notes and categories are invented; a few link to public Instagram Reels chosen as examples.</p>
+
+<h2>Who can use it</h2>
+<p>Neophi is not intended for anyone under 18.</p>
 
 <h2>Changes</h2>
 <p>These terms will be replaced by full terms before any public launch.</p>
-
-<nav><a href="/">Neophi</a><a href="/privacy">Privacy</a><a href="/data-deletion">Data deletion</a></nav>
 </main>
+<footer class="foot">
+  <nav class="foot-in" aria-label="Legal">
+    <a href="/">Neophi</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms" aria-current="page">Terms</a>
+    <a href="/data-deletion">Data deletion</a>
+  </nav>
+</footer>
 </body>
 </html>

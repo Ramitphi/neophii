@@ -1,37 +1,58 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Neophi Privacy</title>
-<meta name="description" content="What Neophi stores, where, for how long, and who else sees it.">
+<meta name="description" content="What Neophi keeps, why, where it lives, who else sees it, and how to remove it.">
+<meta name="theme-color" content="#1c1815">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap">
 <link rel="stylesheet" href="/legal.css">
+<script>
+  // Follow the theme chosen in the app (espresso dark by default).
+  try { if (localStorage.getItem('neophi_theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+</script>
 </head>
 <body>
-<main>
-<header>
-  <a class="brand" href="/">Neophi<i></i></a>
-  <h1>Privacy</h1>
-  <p class="meta">Last updated 20 November 2026</p>
+<header class="head">
+  <div class="head-in">
+    <a class="wordmark" href="/">Neophi<i aria-hidden="true"></i></a>
+    <a class="open" href="/">Open Neophi</a>
+  </div>
 </header>
+<main>
+<p class="eyebrow">Privacy</p>
+<h1>Privacy policy</h1>
+<p class="meta">Last updated 20 November 2026</p>
+<p class="lede">What Neophi keeps, why, where it lives, who else sees it, and how to remove it.</p>
+<div class="note"><p>Neophi is a prototype built for the Startup Buildathon India 2026. This page describes what the app does today. It is not intended for anyone under 18.</p></div>
 
-<p class="note">Neophi is a prototype built for the Startup Buildathon India 2026. This page describes what the app does today.</p>
+<h2>Why Neophi keeps anything</h2>
+<p>Neophi exists to keep the things you save online together with your own reason for saving them, sort them into categories, help you find them again, and bring them back when they are useful. We use your data only for that. We do not sell it, show advertising, or build profiles of you.</p>
 
 <h2>What Neophi stores</h2>
 <ul>
   <li>The links you save, their captions, and the notes you write, exactly as you typed them.</li>
   <li>Images or short clips you upload (up to 15 MB and 60 seconds), and video from Instagram Reels you send us by direct message.</li>
   <li>Your choices for each save: why you saved it, its category, projects, reminders, and whether it is private.</li>
-  <li>The AI reading of each save, and a history of what was added or changed and by whom.</li>
-  <li>An anonymous sign-in ID created for your browser. We do not ask for your name, email address or password.</li>
+  <li>The AI reading of each save, a numeric search index made from it, and a history of what was added or changed and by whom.</li>
+  <li>An anonymous sign-in ID created for your browser. We do not ask for your name, email address, phone number or password.</li>
 </ul>
 
 <h2>Where it is stored</h2>
-<p>Your library is stored in Google Cloud: saves in Firestore and files in a private Cloud Storage bucket, both in Google's Mumbai region. Each library is kept separate and can only be read by the browser that signed in to it.</p>
+<p>In Google Cloud: saves in Firestore and files in a private Cloud Storage bucket, both in Google's Mumbai region. Inside the app, your library can only be opened from the browser that created it. The Neophi team can technically access the stored data as administrators of the Google Cloud project, and does so only to run and fix the service or to act on a deletion request.</p>
 
-<h2>AI analysis</h2>
-<p>Unless you mark a save as private, its media, caption and your note are sent to Google's Gemini models through Vertex AI to describe the save, suggest a category and power search. These requests use Google's global endpoint, so they may be processed outside India. AI suggestions are labelled, show the evidence they rely on or say they are not sure, and never change your own words. Saves marked private are never sent to an AI model.</p>
+<h2>What is sent to AI</h2>
+<p>Neophi uses Google's Gemini models through Vertex AI. These requests use Google's global endpoint, so they may be processed outside India. Gemini receives:</p>
+<ul>
+  <li>a save's media, caption and your note, to describe it and suggest a category;</li>
+  <li>the words you type into search, to understand them in English, Hindi and Hinglish;</li>
+  <li>the saves in a project, when you ask Neophi to draft that project's outcome.</li>
+</ul>
+<p><strong>Saves you mark private are never sent to an AI model</strong>, in any of these cases. AI suggestions are labelled, show the evidence they rely on or say they are not sure, and never change your own words.</p>
 
 <h2>Reels sent by Instagram direct message</h2>
 <p>This works only for Instagram accounts the Neophi team has approved as testers. When you send a Reel or post to the Neophi Instagram account, Meta delivers to our server:</p>
@@ -40,30 +61,46 @@
   <li>the shared post's link, caption and type, and a link to its media;</li>
   <li>any text you send with it or shortly after, kept exactly as sent.</li>
 </ul>
-<p>Our server checks Meta's signature on every delivery and ignores anything else. It keeps a processing record of each delivery for up to 7 days, then deletes it automatically; the message content in that record is cleared as soon as it is processed. Media is downloaded only from Meta's own media servers and stored privately in your library.</p>
+<p>Our server checks Meta's signature on every delivery and ignores anything else. It keeps a processing record of each delivery for up to 7 days, then deletes it automatically. The message content in that record is cleared as soon as it has been processed. Media is downloaded only from Meta's own media servers and stored privately in your library.</p>
+<p>Messages from accounts that are not approved testers are not stored. While a new tester is being set up, the team may briefly log the Instagram-scoped ID of an unapproved sender to identify them.</p>
 <p>Neophi does not read your Instagram account, your followers, your other messages, or anything you did not send us. It never asks for your Instagram password.</p>
 
 <h2>Who else receives your data</h2>
 <ul>
   <li><strong>Meta</strong> carries the Instagram messages. Its own policies apply.</li>
-  <li><strong>Google</strong> hosts the app and its data and runs the AI analysis.</li>
+  <li><strong>Google</strong> hosts the app and its data, runs the anonymous sign-in (Firebase Authentication), runs the AI analysis, and serves the web fonts Neophi uses.</li>
 </ul>
-<p>We do not sell your data, show advertising, or use analytics or tracking scripts.</p>
+<p>There are no analytics, advertising or tracking scripts.</p>
 
 <h2>How long we keep it</h2>
-<p>Your saves stay until you delete them. Deleted files may remain recoverable inside Google Cloud for up to 7 days before they are removed for good. Instagram processing records are deleted automatically within 7 days.</p>
+<ul>
+  <li>Your saves stay until you delete them.</li>
+  <li>Deleted files may remain recoverable inside Google Cloud for up to 7 days before they are removed for good.</li>
+  <li>Instagram processing records are deleted automatically within 7 days.</li>
+  <li>Google Cloud keeps technical request logs (such as IP address, browser and time) for up to 30 days to run and secure the service.</li>
+</ul>
 
 <h2>Your choices</h2>
 <ul>
   <li>Mark any save as private so it is never sent to AI.</li>
   <li>Export your whole library from Settings.</li>
+  <li>Correct your notes and choices at any time.</li>
   <li>Delete one save, or everything. See <a href="/data-deletion">Data deletion</a>.</li>
 </ul>
 
+<h2>Changes to this page</h2>
+<p>If what Neophi does with your data changes, this page and its date will be updated first.</p>
+
 <h2>Contact</h2>
 <p><!-- CONTACT -->Privacy questions and deletion requests: contact details are being added.</p>
-
-<nav><a href="/">Neophi</a><a href="/terms">Terms</a><a href="/data-deletion">Data deletion</a></nav>
 </main>
+<footer class="foot">
+  <nav class="foot-in" aria-label="Legal">
+    <a href="/">Neophi</a>
+    <a href="/privacy" aria-current="page">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/data-deletion">Data deletion</a>
+  </nav>
+</footer>
 </body>
 </html>

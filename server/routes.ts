@@ -579,7 +579,8 @@ export function createApiRouter(deps: ApiDeps): express.Router {
       return;
     }
     const allMemories = await deps.store.listMemories(uid);
-    const projectMemories = allMemories.filter((m) => m.projectIds.includes(project.id));
+    // Saves marked private are never sent to an AI model, including when drafting a project outcome.
+    const projectMemories = allMemories.filter((m) => m.projectIds.includes(project.id) && !m.privateNoAI);
     const sections = await deps.gemini.buildOutcome(
       project.outcomeType,
       project.name,
