@@ -217,11 +217,12 @@ cmd_vertex_smoke() {
   write_env_files "$(service_url "$WORKER_SERVICE")"
   "${G[@]}" run jobs deploy "$SMOKE_JOB" --region "$REGION" --image "$img" --service-account "$WORKER_SA" \
     --env-vars-file deploy/worker-env.yaml --command node --args "tools/vertex-video-smoke.mjs,$obj" --max-retries 0 --task-timeout 300
+  local since; since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   "${G[@]}" run jobs execute "$SMOKE_JOB" --region "$REGION" --wait || true
   sleep 10
   echo "Vertex smoke results:"
-  "${G[@]}" logging read "resource.type=cloud_run_job AND resource.labels.job_name=$SMOKE_JOB AND (jsonPayload.provider=vertex OR textPayload:\"vertex\")" \
-    --freshness=15m --limit=10 --format='value(jsonPayload.mode,jsonPayload.replied,jsonPayload.mime,jsonPayload.bytes,jsonPayload.http,jsonPayload.reason,textPayload)'
+  "${G[@]}" logging read "resource.type=cloud_run_job AND resource.labels.job_name=$SMOKE_JOB AND timestamp>=\"$since\" AND (jsonPayload.provider=vertex OR textPayload:\"vertex\")" \
+    --freshness=15m --limit=4 --format='value(jsonPayload.mode,jsonPayload.replied,jsonPayload.mime,jsonPayload.bytes,jsonPayload.http,jsonPayload.reason,textPayload)'
   if [ "${KEEP:-0}" != 1 ]; then
     "${G[@]}" run jobs delete "$SMOKE_JOB" --region "$REGION"
     "${G[@]}" storage rm "$obj"
