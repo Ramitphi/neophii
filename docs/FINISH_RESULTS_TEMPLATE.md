@@ -14,9 +14,9 @@
 | GET challenge from the public internet with the verify token | PASS / FAIL |
 | `META_IG_RECIPIENT_ID` | `17841449458840084` (yes/no) |
 | `INSTAGRAM_HANDLE` set on the public service | the username, no `@` |
-| Privacy policy URL, and HTTP status without sign-in | `https://<public URL>/privacy` — 200? |
-| Terms of Service URL, and status | `https://<public URL>/terms` — 200? |
-| User data deletion URL, and status | `https://<public URL>/data-deletion` — 200? |
+| Privacy policy URL: status without sign-in, and its own page title (not the app shell) | `https://<public URL>/privacy` — 200? title: |
+| Terms of Service URL: status and own page title | `https://<public URL>/terms` — 200? title: |
+| User data deletion URL: status and own page title | `https://<public URL>/data-deletion` — 200? title: |
 | Contact address used on the legal pages | (the address, or "set by owner") |
 | TLS certificate valid for the public host | yes / no |
 | Old callback for rollback | `https://20-219-13-184.sslip.io/webhooks/instagram` (still running?) |
