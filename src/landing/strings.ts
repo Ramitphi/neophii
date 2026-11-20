@@ -15,7 +15,7 @@ export interface LandingStrings {
   themeToLight: string;
   langLabel: string;
 
-  hero: { small: string; big: string; accent: string; sub: string; ctaStart: string; ctaSee: string };
+  hero: { small: string; big: string; accent: string; sub: string; ctaStart: string; ctaSee: string; backToday: string; yourWords: string };
 
   pile: {
     label: string;
@@ -150,6 +150,8 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
       sub: 'Neophi keeps each Reel, short, link or screenshot with your own words about why, and brings it back when you can use it.',
       ctaStart: 'Start saving',
       ctaSee: 'See how it works',
+      backToday: 'Back today',
+      yourWords: 'your words',
     },
 
     pile: {
@@ -339,6 +341,8 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
       sub: 'Neophi har Reel, short, link ya screenshot ko tumhare apne shabdon ke saath rakhta hai, aur jab kaam aaye tab wapas laata hai.',
       ctaStart: 'Save karna shuru karo',
       ctaSee: 'Dekho kaise chalta hai',
+      backToday: 'Aaj wapas aaya',
+      yourWords: 'tumhare shabd',
     },
 
     pile: {
@@ -528,6 +532,8 @@ export const LANDING: Record<LanguageCode, LandingStrings> = {
       sub: 'Neophi हर रील, शॉर्ट, लिंक या स्क्रीनशॉट को आपके अपने शब्दों के साथ रखता है, और जब काम आए तब वापस लाता है।',
       ctaStart: 'सेव करना शुरू करें',
       ctaSee: 'देखें कैसे चलता है',
+      backToday: 'आज वापस आया',
+      yourWords: 'आपके शब्द',
     },
 
     pile: {

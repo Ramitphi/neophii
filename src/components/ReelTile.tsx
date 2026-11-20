@@ -4,14 +4,12 @@ import { fetchAuthorizedMediaUrl } from '../lib/api';
 import type { Memory } from '../types/neophi';
 
 const PALETTES: Array<[string, string]> = [
-  ['#f58529', '#dd2a7b'],
-  ['#dd2a7b', '#8134af'],
-  ['#8134af', '#515bd4'],
-  ['#0f766e', '#22c55e'],
-  ['#0ea5e9', '#6366f1'],
-  ['#f43f5e', '#f59e0b'],
-  ['#1e293b', '#7c3aed'],
-  ['#ea580c', '#be123c'],
+  ['#FF8A3D', '#F26A12'],
+  ['#6C47FF', '#4F2BE8'],
+  ['#FF4FA3', '#E8338A'],
+  ['#2ED3E6', '#12B5CB'],
+  ['#C6F432', '#9BCB0E'],
+  ['#FFD23F', '#F0B400'],
 ];
 
 function hashString(s: string): number {
