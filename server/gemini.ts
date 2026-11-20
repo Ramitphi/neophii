@@ -119,6 +119,13 @@ function detectNoteLanguage(note: string | null): 'hindi' | 'hinglish' | 'englis
   return 'english';
 }
 
+/** DM notes other than the one shown as `note`, exactly as sent. */
+export function laterDmNotes(memory: Memory): string[] {
+  return (memory.dmNotes ?? [])
+    .filter((n) => n.deliveryId !== memory.dm?.primaryNoteId)
+    .map((n) => n.text);
+}
+
 export function buildEmbeddingText(memory: Memory): string {
   const observedLabels =
     memory.analysis?.observed_objects.map((o) => o.label).join(', ') || '';
@@ -129,6 +136,7 @@ export function buildEmbeddingText(memory: Memory): string {
     summary,
     observedLabels,
     memory.note ? `YOUR WORDS: ${memory.note}` : '',
+    ...laterDmNotes(memory).map((n) => `YOUR WORDS: ${n}`),
   ]
     .filter((s) => s.trim().length > 0)
     .join(' | ');
@@ -150,10 +158,18 @@ export interface GeminiService {
   ): Promise<OutcomeSection[]>;
 }
 
-export class VertexGeminiService implements GeminiService {
-  private ai: GoogleGenAI | null = null;
+/** The part of the @google/genai client this service uses; injectable so tests can capture the request. */
+export type GenAiClient = Pick<GoogleGenAI, 'models'>;
 
-  private getClient(): GoogleGenAI | null {
+export class VertexGeminiService implements GeminiService {
+  private ai: GenAiClient | null = null;
+
+  constructor(options?: { client?: GenAiClient }) {
+    this.ai = options?.client ?? null;
+  }
+
+  private getClient(): GenAiClient | null {
+    if (this.ai) return this.ai;
     if (!config.project) return null;
     if (!this.ai) {
       this.ai = new GoogleGenAI({
