@@ -113,6 +113,10 @@ Expect all PASS: health shows `instagram.webhookConfigured: true` with no secret
 | Vertex 404 | wrong model ID or location |
 | Memory has no video | expected for Reel shares (HTML); see section 4 |
 
+## 10. When you finish: hand back to Oliver's Claude
+
+Oliver's Claude owns the Meta side and the real DM test, and will not act until you hand back. When your gates are done (or blocked), copy `docs/STAGING_RESULTS_TEMPLATE.md` to `docs/STAGING_RESULTS.md` on a branch, fill it in, and open a PR to `main` (or comment the filled text on PR #4). It needs the public and worker URLs, the git SHA, the models chosen, which secrets are in Secret Manager (names and versions only), pairing status, and each gate's result with counts. Oliver gives that PR link or text to his Claude, which re-verifies it itself and then runs the Meta steps listed in section D of the template, asking Oliver before every Meta change. Secret values (the app secret, the verify token) go from Ramit to Oliver privately, never into the PR, chat or logs.
+
 ## 9. Evidence from the legacy path (for context only)
 
 Old stack: Azure VM with Docker + Caddy and a token-protected `/relay`, plus a laptop poller; it proved Meta delivery and the shapes in section 4. It is only the rollback target for the callback. No change to it is needed for Cloud Run.
