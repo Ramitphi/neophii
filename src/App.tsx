@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Moon, Plus, Search, Sun } from 'lucide-react';
+import { Compass, FolderKanban, Home, Moon, Plus, Search, Settings, Sun } from 'lucide-react';
 import { CaptureModal } from './components/CaptureModal';
 import { SearchModal } from './components/SearchModal';
 import { api } from './lib/api';
@@ -117,14 +117,12 @@ export function App() {
                 [
                   { id: 'today', label: t.navToday },
                   { id: 'library', label: t.navLibrary },
-                  { id: 'projects', label: t.navProjects },
-                  { id: 'settings', label: t.navSettings },
                 ] as const
               ).map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className={`nav-link ${!selectedMemoryId && tab === item.id ? 'active' : ''}`}
+                  className={`nav-tab ${!selectedMemoryId && tab === item.id ? 'active' : ''}`}
                   onClick={() => {
                     setSelectedMemoryId(null);
                     setTab(item.id);
@@ -136,29 +134,35 @@ export function App() {
             </nav>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => setSearchOpen(true)} aria-label={t.searchPlaceholder}>
-              <Search size={18} aria-hidden="true" />
-              <span className="muted" style={{ fontSize: '0.85rem' }}>
-                {t.searchShortcut}
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label={t.searchPlaceholder}
+              title={t.searchShortcut}
+              style={{ border: 'none', background: 'transparent', padding: '8px 10px' }}
+            >
+              <Search size={20} aria-hidden="true" />
             </button>
 
             <button
               type="button"
               onClick={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
               aria-label={t.settingsTheme}
+              style={{ border: 'none', background: 'transparent', padding: '8px 10px' }}
             >
-              {theme === 'light' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
+              {theme === 'light' ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
             </button>
 
             <button
               type="button"
               className="btn-primary"
+              aria-label={t.saveButton}
               onClick={() => {
                 setCaptureFocusUrl(false);
                 setCaptureOpen(true);
               }}
+              style={{ padding: '8px 12px', borderRadius: 999 }}
             >
               <Plus size={18} aria-hidden="true" />
               <span>{t.saveButton}</span>
@@ -255,6 +259,64 @@ export function App() {
         onOpenMemory={openMemory}
         t={t}
       />
+
+      <nav className="bottom-nav" aria-label="Mobile navigation">
+        <button
+          type="button"
+          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'today' ? 'active' : ''}`}
+          aria-label={t.navToday}
+          onClick={() => {
+            setSelectedMemoryId(null);
+            setTab('today');
+          }}
+        >
+          <Home size={22} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'library' ? 'active' : ''}`}
+          aria-label={t.navLibrary}
+          onClick={() => {
+            setSelectedMemoryId(null);
+            setTab('library');
+          }}
+        >
+          <Compass size={22} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="bottom-nav-btn bottom-nav-add"
+          aria-label={t.saveButton}
+          onClick={() => {
+            setCaptureFocusUrl(false);
+            setCaptureOpen(true);
+          }}
+        >
+          <Plus size={24} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'projects' ? 'active' : ''}`}
+          aria-label={t.navProjects}
+          onClick={() => {
+            setSelectedMemoryId(null);
+            setTab('projects');
+          }}
+        >
+          <FolderKanban size={22} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'settings' ? 'active' : ''}`}
+          aria-label={t.navSettings}
+          onClick={() => {
+            setSelectedMemoryId(null);
+            setTab('settings');
+          }}
+        >
+          <Settings size={22} aria-hidden="true" />
+        </button>
+      </nav>
     </div>
   );
 }

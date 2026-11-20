@@ -448,8 +448,8 @@ export function buildSampleLibrary(now = new Date()): {
     },
     {
       id: 'sample-start-mess',
-      createdAt: iso(5),
-      updatedAt: iso(5),
+      createdAt: iso(0.55),
+      updatedAt: iso(0.55),
       title: 'Start with the mess',
       platform: 'instagram',
       url: 'https://instagram.com/reel/sample-hook',
@@ -499,8 +499,8 @@ export function buildSampleLibrary(now = new Date()): {
     },
     {
       id: 'sample-dupatta',
-      createdAt: iso(4),
-      updatedAt: iso(4),
+      createdAt: iso(0.35),
+      updatedAt: iso(0.35),
       title: 'Dupatta, three ways',
       platform: 'instagram',
       url: 'https://instagram.com/reel/sample-dupatta',
@@ -550,8 +550,8 @@ export function buildSampleLibrary(now = new Date()): {
     },
     {
       id: 'sample-chai-pour',
-      createdAt: iso(3),
-      updatedAt: iso(3),
+      createdAt: iso(0.15),
+      updatedAt: iso(0.15),
       title: 'Slow chai pour',
       platform: 'instagram',
       url: 'https://instagram.com/reel/sample-chai',
