@@ -3,8 +3,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
 export type VideoName =
-  | 'night_hero'
-  | 'night_footer'
   | 'loop_scatter'
   | 'loop_lanes'
   | 'loop_evening'
@@ -70,6 +68,18 @@ export function BackdropVideo({ name, eager = false }: { name: VideoName; eager?
   );
 }
 
+/** Soft drifting colour orbs: the warm background of the hero and the closing panel. */
+export function GlowBackdrop() {
+  return (
+    <div className="lp-glow" aria-hidden="true">
+      <span className="lp-orb lp-orb-pink" />
+      <span className="lp-orb lp-orb-orange" />
+      <span className="lp-orb lp-orb-violet" />
+      <span className="lp-orb lp-orb-lime" />
+    </div>
+  );
+}
+
 export function Panel({
   video,
   tone = 'paper',
@@ -78,7 +88,8 @@ export function Panel({
   className = '',
   children,
 }: {
-  video: VideoName;
+  /** A looping video behind the panel, or none for the glow background. */
+  video?: VideoName;
   tone?: 'paper' | 'night';
   id?: string;
   label?: string;
@@ -87,8 +98,8 @@ export function Panel({
 }) {
   return (
     <section id={id} className={`lp-panel lp-${tone} ${className}`.trim()} aria-label={label}>
-      <BackdropVideo name={video} />
-      <div className="lp-shade" aria-hidden="true" />
+      {video ? <BackdropVideo name={video} /> : <GlowBackdrop />}
+      {video && <div className="lp-shade" aria-hidden="true" />}
       <div className="lp-panel-in">{children}</div>
     </section>
   );

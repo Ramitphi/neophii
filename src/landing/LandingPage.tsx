@@ -1,13 +1,14 @@
 // Neophi landing page. Layout follows the Neophi v4 public site: full-screen panels with looping
-// paper-cut videos, a night hero, numbered steps, the lanes, a vermilion trust band, the reason ladder
-// and a night closing panel. Interactive pieces: the settling pile, evidence pointing, search, fading.
+// paper-cut videos, a warm glowing hero with save stickers, numbered steps, the lanes, a trust band, the
+// reason ladder and a glowing closing panel. Interactive pieces: the settling pile, evidence pointing,
+// search, fading.
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { ArrowRight, Car, Check, CookingPot, Menu, Moon, Search, Sparkles, Sun, TreePalm, X } from 'lucide-react';
 import type { LanguageCode } from '../types/neophi';
 import { EvidenceDemo } from './EvidenceDemo';
 import { FadeDemo } from './FadeDemo';
 import { FeedDemo } from './FeedDemo';
-import { asset, Panel, prefersCalm, scrollPastPanel } from './Panel';
+import { GlowBackdrop, Panel, prefersCalm, scrollPastPanel } from './Panel';
 import { Pile } from './Pile';
 import { SearchDemo } from './SearchDemo';
 import { LANDING } from './strings';
@@ -24,6 +25,39 @@ function Wordmark() {
     <span className="lp-wordmark">
       Neophi<i aria-hidden="true" />
     </span>
+  );
+}
+
+// Three saves as stickers, each with the words it was saved with, and one brought back today.
+const HERO_SAVES = [
+  { cat: 'Sunday cooking', kind: 'Short', note: 'Sunday ko banana hai', Icon: CookingPot, pop: 'pink' },
+  { cat: 'Goa in January', kind: 'Reel', note: 'poi bread wali jagah', Icon: TreePalm, pop: 'lime' },
+  { cat: 'Cars to buy', kind: 'Reel', note: 'car to buy', Icon: Car, pop: 'tangerine' },
+] as const;
+
+function HeroStickers({ s }: { s: (typeof LANDING)['en'] }) {
+  return (
+    <div className="lp-hero-stickers" aria-hidden="true">
+      {HERO_SAVES.map((save, i) => (
+        <div key={save.cat} className={`lp-sticker lp-sticker-${i + 1} lp-pop-${save.pop}`}>
+          <span className="lp-sticker-art">
+            <save.Icon size={30} strokeWidth={1.6} />
+            <span className="lp-sticker-kind">{save.kind}</span>
+          </span>
+          <span className="lp-sticker-body">
+            <b>{save.cat}</b>
+            <span className="lp-sticker-label">{s.hero.yourWords}</span>
+            <span className="lp-sticker-note-line">
+              <span className="lp-sticker-note">{save.note}</span>
+            </span>
+          </span>
+        </div>
+      ))}
+      <span className="lp-sticker-back">
+        <Check size={15} strokeWidth={3} /> {s.hero.backToday}
+      </span>
+      <Sparkles className="lp-sticker-spark" size={28} />
+    </div>
   );
 }
 
@@ -67,21 +101,10 @@ function HeroPanel({
   }, []);
 
   return (
-    <section ref={ref} className="lp-panel lp-night lp-hero" aria-label="Neophi">
-      <video
-        className="lp-video"
-        muted
-        loop
-        playsInline
-        autoPlay={!prefersCalm()}
-        preload="auto"
-        poster={asset('video/posters/night_hero.webp')}
-        src={prefersCalm() ? undefined : asset('video/night_hero.mp4')}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
-      <div className="lp-shade" aria-hidden="true" />
-      <div className="lp-panel-in lp-hero-words lp-wrap">
+    <section ref={ref} className="lp-panel lp-hero" aria-label="Neophi">
+      <GlowBackdrop />
+      <div className="lp-panel-in lp-wrap lp-hero-grid">
+      <div className="lp-hero-words">
         <h1>
           <span className="lp-line lp-line-small">{s.hero.small}</span>
           <span className="lp-line lp-line-big">{s.hero.big}</span>
@@ -96,6 +119,8 @@ function HeroPanel({
             {s.hero.ctaSee}
           </a>
         </p>
+      </div>
+      <HeroStickers s={s} />
       </div>
       <a
         className="lp-cue"
@@ -375,7 +400,7 @@ export function LandingPage({
           </div>
         </Panel>
 
-        <Panel video="night_footer" tone="night" className="lp-closing" label={s.closing.title}>
+        <Panel className="lp-closing" label={s.closing.title}>
           <div className="lp-wrap lp-closing-in">
             <h2 className="lp-h2">{s.closing.title}</h2>
             <p className="lp-lede">{s.closing.sub}</p>
