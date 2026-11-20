@@ -53,6 +53,8 @@ The worker endpoint is mounted only when `INSTAGRAM_WORKER_OIDC_AUDIENCE` + `INS
 
 ## Google Cloud setup
 
+For the live project, follow `docs/DEPLOY.md` and the scripts in `scripts/deploy/`. They use a single `neophi-app` identity and the in-process poller on one public service. The rest of this section describes the general design with separate identities and a private worker.
+
 > **STOP (Ramit): resource creation and deploy.** Nothing below has been run. Pick the billed project and region, review, then run it yourself.
 
 ```bash
