@@ -25,6 +25,7 @@ import {
   Globe,
   type LucideIcon,
 } from 'lucide-react';
+import { POPS, popVars, type Pop } from './pop';
 import type { LandingStrings } from './strings';
 
 type CatId = 'cars' | 'investing' | 'entertainment' | 'unsorted';
@@ -34,7 +35,7 @@ interface Category {
   id: CatId;
   name: string;
   Icon: LucideIcon;
-  tint: string;
+  pop: Pop;
   match: RegExp | null;
 }
 
@@ -52,10 +53,10 @@ interface Save {
 
 // Category names are built from the saver's own words, so they are not translated.
 const CATEGORIES: Category[] = [
-  { id: 'cars', name: 'Cars to buy', Icon: Car, tint: '#d5dfe9', match: /\b(cars?|suv|bikes?|scooters?|gaadi)\b|गाड़ी|कार|बाइक/i },
-  { id: 'investing', name: 'Investing', Icon: TrendingUp, tint: '#d9e6c8', match: /(invest|stocks?|shares?|mutual fund|\bsip\b|finance|money|paisa)|निवेश|पैसा|शेयर/i },
-  { id: 'entertainment', name: 'Entertainment', Icon: Clapperboard, tint: '#ecd3dc', match: /(entertain|movies?|films?|songs?|funny|comedy|memes?|series|\bshows?\b)|मज़ेदार|मजेदार|फ़िल्म|फिल्म|गाना/i },
-  { id: 'unsorted', name: 'Unsorted', Icon: Inbox, tint: '#e9e2d3', match: null },
+  { id: 'cars', name: 'Cars to buy', Icon: Car, pop: POPS.tangerine, match: /\b(cars?|suv|bikes?|scooters?|gaadi)\b|गाड़ी|कार|बाइक/i },
+  { id: 'investing', name: 'Investing', Icon: TrendingUp, pop: POPS.lime, match: /(invest|stocks?|shares?|mutual fund|\bsip\b|finance|money|paisa)|निवेश|पैसा|शेयर/i },
+  { id: 'entertainment', name: 'Entertainment', Icon: Clapperboard, pop: POPS.pink, match: /(entertain|movies?|films?|songs?|funny|comedy|memes?|series|\bshows?\b)|मज़ेदार|मजेदार|फ़िल्म|फिल्म|गाना/i },
+  { id: 'unsorted', name: 'Unsorted', Icon: Inbox, pop: POPS.cyan, match: null },
 ];
 
 const CHIP_FOR: Record<CatId, string> = { cars: 'Buy', investing: 'Learn', entertainment: 'Just remember', unsorted: 'Just remember' };
@@ -118,8 +119,8 @@ function SaveCard({
   };
 
   return (
-    <article className={`ph-card ${save.done ? 'is-done' : ''}`}>
-      <div className="ph-media" style={{ background: c.tint }}>
+    <article className={`ph-card ${save.done ? 'is-done' : ''}`} style={popVars(c.pop)}>
+      <div className="ph-media">
         <span className="ph-platform">
           <PlatformIcon size={13} aria-hidden="true" /> {save.platform}
           {save.platform === 'Instagram' ? ' · Reel' : ''}
@@ -156,7 +157,7 @@ function SaveCard({
       </div>
 
       <div className="ph-info">
-        <span className="ph-avatar" style={{ background: c.tint }} aria-hidden="true">
+        <span className="ph-avatar" aria-hidden="true">
           <c.Icon size={24} strokeWidth={1.6} />
         </span>
         <div className="ph-who">
@@ -284,8 +285,15 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
             </button>
           </div>
           <div className="ph-tabs" role="group" aria-label={f.tabsLabel}>
-            {[{ id: 'all' as const, name: f.all }, ...tabs].map((t) => (
-              <button key={t.id} type="button" aria-pressed={tab === t.id} className={tab === t.id ? 'is-on' : ''} onClick={() => setTab(t.id)}>
+            {[{ id: 'all' as const, name: f.all, pop: POPS.violet }, ...tabs].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                aria-pressed={tab === t.id}
+                className={tab === t.id ? 'is-on' : ''}
+                style={popVars(t.pop)}
+                onClick={() => setTab(t.id)}
+              >
                 {t.name}
               </button>
             ))}

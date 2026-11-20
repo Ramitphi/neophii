@@ -34,11 +34,10 @@ import {
 } from 'lucide-react';
 import { fetchAuthorizedMediaUrl } from '../lib/api';
 import type { StringsTable } from '../lib/i18n';
+import { POPS, popAt, popFor, popVars, type Pop } from '../landing/pop';
 import { LANDING } from '../landing/strings';
 import type { Category, LanguageCode, Memory, MemoryPurpose, Platform } from '../types/neophi';
 import { FEED_STRINGS } from './feedStrings';
-
-const TINTS = ['#d5dfe9', '#d9e6c8', '#ecd3dc', '#f1dfb4', '#dcd8ec', '#cfe2dc', '#f6d5c8', '#e9d9c4'];
 
 const PURPOSE_ICON: Record<MemoryPurpose, LucideIcon> = {
   shop: ShoppingBag,
@@ -57,12 +56,6 @@ const PLATFORM: Record<Platform, { label: string; Icon: LucideIcon }> = {
   upload: { label: 'Upload', Icon: Upload },
   other: { label: 'Link', Icon: Link2 },
 };
-
-function tintFor(key: string): string {
-  let h = 0;
-  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return TINTS[h % TINTS.length];
-}
 
 function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -92,6 +85,7 @@ function useThumb(memory: Memory): string | null {
 interface CardProps {
   memory: Memory;
   category: Category | null;
+  pop: Pop;
   lang: LanguageCode;
   t: StringsTable;
   onOpen: (id: string) => void;
@@ -100,13 +94,12 @@ interface CardProps {
   onCopy: (url: string) => void;
 }
 
-function MemoryCard({ memory, category, lang, t, onOpen, onAct, onAddNote, onCopy }: CardProps) {
+function MemoryCard({ memory, category, pop, lang, t, onOpen, onAct, onAddNote, onCopy }: CardProps) {
   const L = LANDING[lang].feed;
   const F = FEED_STRINGS[lang];
   const thumb = useThumb(memory);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const tint = tintFor(category?.id ?? memory.id);
   const PurposeIcon = PURPOSE_ICON[memory.analysis?.purpose ?? 'other'];
   const platform = PLATFORM[memory.platform] ?? PLATFORM.other;
   const intent = memory.analysis?.inferred_possible_intents?.[0];
@@ -138,8 +131,8 @@ function MemoryCard({ memory, category, lang, t, onOpen, onAct, onAddNote, onCop
   };
 
   return (
-    <article className="ph-card">
-      <button type="button" className="ph-media ph-media-btn" style={{ background: tint }} onClick={() => onOpen(memory.id)} aria-label={`${t.actionOpen}: ${memory.title}`}>
+    <article className="ph-card" style={popVars(pop)}>
+      <button type="button" className="ph-media ph-media-btn" onClick={() => onOpen(memory.id)} aria-label={`${t.actionOpen}: ${memory.title}`}>
         {thumb ? (
           <img src={thumb} alt="" className={`ph-media-img ${memory.media?.svgThumb ? 'is-contain' : ''}`} />
         ) : memory.media?.kind === 'image' || memory.media?.kind === 'video' ? (
@@ -187,7 +180,7 @@ function MemoryCard({ memory, category, lang, t, onOpen, onAct, onAddNote, onCop
       </div>
 
       <div className="ph-info">
-        <span className="ph-avatar" style={{ background: tint }} aria-hidden="true">
+        <span className="ph-avatar" aria-hidden="true">
           <PurposeIcon size={24} strokeWidth={1.6} />
         </span>
         <div className="ph-who">
@@ -309,6 +302,7 @@ export function FeedPage({
     .filter((m) => !m.doneAt && !(m.snoozedUntil && new Date(m.snoozedUntil).getTime() > now))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const popByCat = useMemo(() => new Map(categories.map((c, i) => [c.id, popAt(i)])), [categories]);
   const tabs = categories.filter((c) => visible.some((m) => m.categoryId === c.id));
   const activeTab = tab === 'all' || tabs.some((c) => c.id === tab) ? tab : 'all';
   const shown = activeTab === 'all' ? visible : visible.filter((m) => m.categoryId === activeTab);
@@ -376,6 +370,7 @@ export function FeedPage({
                 type="button"
                 aria-pressed={activeTab === c.id}
                 className={activeTab === c.id ? 'is-on' : ''}
+                style={popVars(c.id === 'all' ? POPS.violet : popByCat.get(c.id) ?? popFor(c.id))}
                 onClick={() => {
                   setTab(c.id);
                   scrollRef.current?.scrollTo({ top: 0 });
@@ -419,6 +414,7 @@ export function FeedPage({
                 key={m.id}
                 memory={m}
                 category={m.categoryId ? catById.get(m.categoryId) ?? null : null}
+                pop={(m.categoryId && popByCat.get(m.categoryId)) || popFor(m.id)}
                 lang={lang}
                 t={t}
                 onOpen={(id) => openMemory(id)}

@@ -2172,3 +2172,260 @@ html.lp-root[data-theme='dark'] {
     min-height: calc(100svh - var(--head-h));
   }
 }
+
+/* ---------- Feed pop colour layer ----------
+   Same layout, louder colour: each card carries its category colour in --acc / --acc-deep / --acc-ink
+   (set inline), with ink outlines and offset "sticker" shadows. Violet marks the frame and AI lines. */
+.lp {
+  --violet: #6c47ff;
+  --violet-soft: color-mix(in srgb, #6c47ff 12%, var(--card));
+  --ai-text: #5a35f0;
+}
+[data-theme='dark'] .lp {
+  --violet-soft: color-mix(in srgb, #6c47ff 22%, var(--card));
+  --ai-text: #b3a2ff;
+}
+
+/* frame: a violet-to-pink bezel on a dotted ground */
+.lp .ph-frame {
+  background: linear-gradient(160deg, #6c47ff, #ff4fa3);
+  box-shadow: 0 24px 60px -24px rgb(108 71 255 / 0.7);
+}
+.ph-app {
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, #6c47ff 32%, transparent) 1.2px, transparent 0) 0 0 / 20px 20px,
+    var(--paper-deep);
+}
+.lp .ph-frame.is-app {
+  background: transparent;
+  box-shadow: none;
+}
+@media (min-width: 560px) {
+  .lp .ph-frame.is-app .ph-screen {
+    border: 3px solid #6c47ff;
+    box-shadow: 0 0 0 6px color-mix(in srgb, #6c47ff 18%, transparent), 0 30px 60px -30px rgb(108 71 255 / 0.6);
+  }
+}
+.lp .ph-logo i {
+  background: linear-gradient(135deg, #ff4fa3, #ff8a3d);
+}
+
+/* tabs: the active one becomes a colour pill */
+.lp .ph-tabs {
+  gap: 8px;
+  padding-bottom: 10px;
+}
+.lp .ph-tabs button {
+  padding: 6px 14px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+.lp .ph-tabs button:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.lp .ph-tabs button.is-on {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+/* cards: a little air between them, on a soft dotted ground */
+.lp .ph-scroll {
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 12%, transparent) 1px, transparent 0) 0 0 / 16px 16px,
+    var(--paper);
+}
+.lp .ph-card {
+  border-bottom: 0;
+  margin: 12px 10px;
+  border-radius: 22px;
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--acc);
+}
+
+/* media: category gradient with a dot pattern, the icon on a sticker blob */
+.lp .ph-media {
+  border-radius: 16px;
+  border: 2.5px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  color: var(--acc-ink);
+  background:
+    radial-gradient(circle at 2px 2px, rgb(255 255 255 / 0.35) 1.6px, transparent 0) 0 0 / 14px 14px,
+    radial-gradient(120% 90% at 85% 10%, var(--acc) 0 45%, transparent 46%),
+    linear-gradient(140deg, var(--acc) 0%, var(--acc-deep) 100%);
+}
+.lp .ph-media > svg {
+  box-sizing: content-box;
+  padding: 22px;
+  background: #fffaf0;
+  color: #17130e;
+  border: 2.5px solid #17130e;
+  border-radius: 42% 58% 55% 45% / 50% 44% 56% 50%;
+  box-shadow: 5px 5px 0 #17130e;
+  transform: rotate(-4deg);
+  transition: transform 0.3s var(--ease);
+}
+.lp .ph-card:hover .ph-media > svg {
+  transform: rotate(3deg) scale(1.05);
+}
+.lp .ph-platform,
+.lp .ph-linkonly {
+  border: 2px solid #17130e;
+  background: #fffaf0;
+  color: #17130e;
+  border-style: solid;
+}
+.lp .ph-linkonly {
+  background: var(--acc);
+  color: var(--acc-ink);
+}
+.lp .ph-media-btn:hover {
+  filter: saturate(1.1);
+}
+
+/* rail: chunky sticker buttons that fill with the card colour */
+.lp .ph-rail-circle {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), background-color 0.2s;
+}
+.lp .ph-rail-btn:hover .ph-rail-circle {
+  background: var(--acc);
+  color: var(--acc-ink);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.lp .ph-rail-btn:active .ph-rail-circle {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.lp .ph-rail-circle.is-on {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border-color: var(--ink);
+}
+
+/* who: colour avatar, violet badge */
+.lp .ph-avatar {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.lp .ph-verified {
+  color: #fff;
+  fill: var(--violet);
+}
+.lp .ph-ai-tag {
+  border-color: var(--ai-text);
+  color: var(--ai-text);
+}
+
+/* your words: a highlighter stroke in the card colour */
+.lp .ph-words {
+  border-bottom: 0;
+  padding: 0 4px;
+  margin-left: -4px;
+  background: linear-gradient(transparent 55%, color-mix(in srgb, var(--acc) 70%, transparent) 55%, color-mix(in srgb, var(--acc) 70%, transparent) 92%, transparent 92%);
+}
+.lp .ph-more {
+  border-left-color: var(--acc-deep);
+}
+
+/* pills */
+.lp .ph-pill {
+  border: 2px solid var(--ink);
+}
+.lp .ph-pill-strong {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.lp .ph-pill-dashed {
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+
+/* AI line: violet, dashed */
+.lp .ph-ai {
+  border: 2px dashed var(--violet);
+  background: var(--violet-soft);
+  border-radius: 12px;
+}
+.lp .ph-ai b {
+  color: var(--ai-text);
+}
+
+/* CTA: black button with a colour offset, note box that lights up */
+.lp .ph-try {
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--acc, var(--violet));
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), background-color 0.2s;
+}
+.lp .ph-try:hover {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--acc, var(--violet));
+}
+.lp .ph-note {
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  transition: box-shadow 0.2s var(--ease);
+}
+.lp .ph-note:focus-within {
+  box-shadow: 4px 4px 0 var(--acc, var(--violet));
+}
+.lp .ph-note-add {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border: 2px solid var(--ink);
+}
+
+/* bottom nav: active pill, gradient + button */
+.lp .ph-nav button.is-on svg,
+.lp .ph-nav button[aria-pressed='true'] svg {
+  box-sizing: content-box;
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--violet) 18%, transparent);
+  color: var(--ai-text);
+}
+.lp .ph-nav button.is-on,
+.lp .ph-nav button[aria-pressed='true'] {
+  color: var(--ink);
+}
+.lp .ph-nav .ph-nav-save svg {
+  width: 22px;
+  height: 22px;
+  padding: 9px;
+  margin-top: -18px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6c47ff, #ff4fa3);
+  color: #fff;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.2s var(--ease);
+}
+.lp .ph-nav .ph-nav-save:hover svg {
+  transform: rotate(90deg);
+}
+
+/* toast and sheet pick up the violet */
+.lp .ph-toast {
+  border: 2px solid var(--violet);
+  box-shadow: 4px 4px 0 var(--violet);
+}
+.lp .ph-sheet {
+  border-top: 3px solid var(--violet);
+}
+.lp .ph-sheet input {
+  border: 2px solid var(--ink);
+}
+.lp .ph-sheet .ph-try {
+  --acc: #ff4fa3;
+}
