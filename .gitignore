@@ -4,3 +4,8 @@ dist/
 .env.local
 *.log
 .DS_Store
+.env.production
+.env.*.local
+# Filled Cloud Run env files written by deploy/staging.sh
+deploy/public-env.yaml
+deploy/worker-env.yaml
