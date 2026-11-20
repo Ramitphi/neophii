@@ -1,0 +1,76 @@
+# Continuous deployment for main: build the image, push it, and move both Cloud Run services onto it.
+# Run by a Cloud Build trigger on pushes to main (see docs/AUTO_DEPLOY.md). Only the image changes: each
+# service keeps its environment variables, secrets and service account. Every deploy is a new revision,
+# so a bad one can be rolled back with `gcloud run services update-traffic`.
+#
+# Substitutions set on the trigger (public web config, not secrets):
+#   _VITE_FIREBASE_API_KEY, _VITE_FIREBASE_AUTH_DOMAIN, _VITE_FIREBASE_PROJECT_ID, _VITE_FIREBASE_APP_ID
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg=VITE_FIREBASE_API_KEY=${_VITE_FIREBASE_API_KEY}
+      - --build-arg=VITE_FIREBASE_AUTH_DOMAIN=${_VITE_FIREBASE_AUTH_DOMAIN}
+      - --build-arg=VITE_FIREBASE_PROJECT_ID=${_VITE_FIREBASE_PROJECT_ID}
+      - --build-arg=VITE_FIREBASE_APP_ID=${_VITE_FIREBASE_APP_ID}
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/neophi:${SHORT_SHA}
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/neophi:${SHORT_SHA}']
+
+  - id: deploy-public
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_PUBLIC_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/neophi:${SHORT_SHA}
+      - --region=${_REGION}
+      - --quiet
+
+  - id: deploy-worker
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if gcloud run services describe "${_WORKER_SERVICE}" --region="${_REGION}" >/dev/null 2>&1; then
+          gcloud run deploy "${_WORKER_SERVICE}" --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/neophi:${SHORT_SHA}" --region="${_REGION}" --quiet
+        else
+          echo "No ${_WORKER_SERVICE} service in ${_REGION}; skipping the worker."
+        fi
+
+  - id: health
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        url="$$(gcloud run services describe "${_PUBLIC_SERVICE}" --region="${_REGION}" --format='value(status.url)')"
+        code="$$(curl -s -o /dev/null -w '%{http_code}' "$$url/api/health")"
+        echo "health $$code on ${SHORT_SHA}"
+        test "$$code" = "200"
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/neophi:${SHORT_SHA}
+
+substitutions:
+  _REGION: asia-south1
+  _REPO: neophi
+  _PUBLIC_SERVICE: neophi
+  _WORKER_SERVICE: neophi-worker
+  _VITE_FIREBASE_API_KEY: ''
+  _VITE_FIREBASE_AUTH_DOMAIN: ''
+  _VITE_FIREBASE_PROJECT_ID: ''
+  _VITE_FIREBASE_APP_ID: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
+
+timeout: 1200s
