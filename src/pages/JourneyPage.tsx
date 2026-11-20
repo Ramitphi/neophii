@@ -6,6 +6,7 @@ import { ChevronRight, Globe, Instagram, Link2, Search, Sprout, Upload, Youtube,
 import { buildJourney, expandableIds, type JourneyLens, type JourneyNode } from '../lib/journey';
 import type { Category, LanguageCode, Memory, Platform } from '../types/neophi';
 import { FEED_STRINGS } from './feedStrings';
+import { aiLine } from '../lib/aiLine';
 
 const PLATFORM_ICON: Record<Platform, LucideIcon> = {
   instagram: Instagram,
@@ -98,7 +99,13 @@ export function JourneyPage({
                 </span>
               )}
             </span>
-            {words ? <span className="jy-leaf-words">“{words}”</span> : <span className="jy-leaf-nowords">{J.withoutWords}</span>}
+            {words ? (
+              <span className="jy-leaf-words">“{words}”</span>
+            ) : aiLine(m.analysis) ? (
+              <span className="jy-leaf-ai">AI · {aiLine(m.analysis)}</span>
+            ) : (
+              <span className="jy-leaf-nowords">{J.withoutWords}</span>
+            )}
           </span>
           <span className="jy-leaf-date">{date(m.createdAt)}</span>
         </button>

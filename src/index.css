@@ -1442,3 +1442,36 @@ body {
   min-height: 40px;
   font-size: 0.85rem;
 }
+
+/* AI key points on the save page: short, labelled, each with its evidence. */
+.key-points ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.key-points-title {
+  margin: 0;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.key-point-kind {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted, inherit);
+  margin-right: 4px;
+}
+/* A save with no note shows what it is, labelled AI, never as the person's words. */
+.ph-ai-line {
+  margin: 0 4px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+.jy-leaf-ai {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
