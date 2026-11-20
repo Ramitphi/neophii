@@ -129,33 +129,6 @@ function SaveCard({
         <span className="ph-linkonly">{f.linkOnly}</span>
       </div>
 
-      <div className="ph-rail">
-        <a className="ph-rail-btn" href={save.url} target="_blank" rel="noopener noreferrer">
-          <span className="ph-rail-circle">
-            <ExternalLink size={19} aria-hidden="true" />
-          </span>
-          <span>{f.rail.open}</span>
-        </a>
-        <button type="button" className="ph-rail-btn" aria-pressed={save.later} onClick={() => onToggle(save.id, 'later')}>
-          <span className={`ph-rail-circle ${save.later ? 'is-on' : ''}`}>
-            {save.later ? <BookmarkCheck size={19} aria-hidden="true" /> : <Bookmark size={19} aria-hidden="true" />}
-          </span>
-          <span>{save.later ? f.rail.inLater : f.rail.later}</span>
-        </button>
-        <button type="button" className="ph-rail-btn" aria-pressed={save.done} onClick={() => onToggle(save.id, 'done')}>
-          <span className={`ph-rail-circle ${save.done ? 'is-on' : ''}`}>
-            <Check size={19} aria-hidden="true" />
-          </span>
-          <span>{save.done ? f.rail.undo : f.rail.done}</span>
-        </button>
-        <button type="button" className="ph-rail-btn" onClick={() => onCopy(save.url)}>
-          <span className="ph-rail-circle">
-            <Link2 size={19} aria-hidden="true" />
-          </span>
-          <span>{f.rail.copy}</span>
-        </button>
-      </div>
-
       <div className="ph-info">
         <span className="ph-avatar" aria-hidden="true">
           <c.Icon size={24} strokeWidth={1.6} />
@@ -188,6 +161,22 @@ function SaveCard({
         <span className="ph-pill ph-pill-dashed">{save.justNow ? f.savedNow : f.savedToday}</span>
       </div>
       <p className="ph-ai">{f.aiNone}</p>
+
+      <div className="ph-actions">
+        <a className="ph-act" href={save.url} target="_blank" rel="noopener noreferrer">
+          <ExternalLink size={15} aria-hidden="true" /> {f.rail.open}
+        </a>
+        <button type="button" className={`ph-act ${save.later ? 'is-on' : ''}`} aria-pressed={save.later} onClick={() => onToggle(save.id, 'later')}>
+          {save.later ? <BookmarkCheck size={15} aria-hidden="true" /> : <Bookmark size={15} aria-hidden="true" />}{' '}
+          {save.later ? f.rail.inLater : f.rail.later}
+        </button>
+        <button type="button" className={`ph-act ${save.done ? 'is-on' : ''}`} aria-pressed={save.done} onClick={() => onToggle(save.id, 'done')}>
+          <Check size={15} aria-hidden="true" /> {save.done ? f.rail.undo : f.rail.done}
+        </button>
+        <button type="button" className="ph-act" onClick={() => onCopy(save.url)}>
+          <Link2 size={15} aria-hidden="true" /> {f.rail.copy}
+        </button>
+      </div>
 
       <div className="ph-cta">
         <a className="ph-try" href={save.url} target="_blank" rel="noopener noreferrer">

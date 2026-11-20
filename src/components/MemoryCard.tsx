@@ -171,37 +171,6 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
         </button>
       )}
 
-      <div className="ph-rail">
-        {memory.url && (
-          <a className="ph-rail-btn" href={memory.url} target="_blank" rel="noopener noreferrer">
-            <span className="ph-rail-circle">
-              <ExternalLink size={19} aria-hidden="true" />
-            </span>
-            <span>{L.rail.open}</span>
-          </a>
-        )}
-        <button type="button" className="ph-rail-btn" onClick={() => onAct(memory, 'later')}>
-          <span className="ph-rail-circle">
-            <Bookmark size={19} aria-hidden="true" />
-          </span>
-          <span>{L.rail.later}</span>
-        </button>
-        <button type="button" className="ph-rail-btn" onClick={() => onAct(memory, 'done')}>
-          <span className="ph-rail-circle">
-            <Check size={19} aria-hidden="true" />
-          </span>
-          <span>{L.rail.done}</span>
-        </button>
-        {memory.url && (
-          <button type="button" className="ph-rail-btn" onClick={() => onCopy(memory.url!)}>
-            <span className="ph-rail-circle">
-              <Link2 size={19} aria-hidden="true" />
-            </span>
-            <span>{L.rail.copy}</span>
-          </button>
-        )}
-      </div>
-
       {/* The user's exact words come first, directly below the save. */}
       {memory.note ? <p className="ph-words">{memory.note}</p> : <p className="ph-tagline">{t.noNoteAdded}</p>}
       {later.length > 0 && (
@@ -265,6 +234,26 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
           <b>{t.aiSuggestionPill}:</b> {aiLine}
         </p>
       )}
+
+      {/* Quick actions under the words; the picture above stays just the Reel. */}
+      <div className="ph-actions">
+        {memory.url && !igPost && (
+          <a className="ph-act" href={memory.url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={15} aria-hidden="true" /> {L.rail.open}
+          </a>
+        )}
+        <button type="button" className="ph-act" onClick={() => onAct(memory, 'later')}>
+          <Bookmark size={15} aria-hidden="true" /> {L.rail.later}
+        </button>
+        <button type="button" className="ph-act" onClick={() => onAct(memory, 'done')}>
+          <Check size={15} aria-hidden="true" /> {L.rail.done}
+        </button>
+        {memory.url && (
+          <button type="button" className="ph-act" onClick={() => onCopy(memory.url!)}>
+            <Link2 size={15} aria-hidden="true" /> {L.rail.copy}
+          </button>
+        )}
+      </div>
 
       <div className="ph-cta">
         <button type="button" className="ph-try" onClick={() => onOpen(memory.id)}>
