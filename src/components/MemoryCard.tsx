@@ -33,6 +33,7 @@ import { LANDING } from '../landing/strings';
 import { FEED_STRINGS } from '../pages/feedStrings';
 import type { Category, LanguageCode, Memory, MemoryPurpose, Platform } from '../types/neophi';
 import { useShellToast } from './AppShell';
+import { InstagramThumb, instagramPost } from './InstagramThumb';
 
 const PURPOSE_ICON: Record<MemoryPurpose, LucideIcon> = {
   shop: ShoppingBag,
@@ -102,6 +103,8 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
   const platform = PLATFORM[memory.platform] ?? PLATFORM.other;
   const intent = memory.analysis?.inferred_possible_intents?.[0];
   const later = laterNotes(memory);
+  // A source that is gone keeps its 'not available' look instead of Instagram's empty embed.
+  const igPost = memory.ingest === 'unsupported' ? null : instagramPost(memory.url);
 
   const aiLine = memory.privateNoAI
     ? F.aiOff
@@ -131,21 +134,37 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
 
   return (
     <article className="ph-card ph-chrome" style={popVars(pop)}>
-      <button type="button" className="ph-media ph-media-btn" onClick={() => onOpen(memory.id)} aria-label={`${t.actionOpen}: ${memory.title}`}>
-        {thumb ? (
-          <img src={thumb} alt="" className={`ph-media-img ${memory.media?.svgThumb ? 'is-contain' : ''}`} />
-        ) : memory.media?.kind === 'image' || memory.media?.kind === 'video' ? (
-          <ImageIcon size={52} strokeWidth={1.2} aria-hidden="true" />
-        ) : (
-          <PurposeIcon size={56} strokeWidth={1.2} aria-hidden="true" />
-        )}
-        <span className="ph-platform">
-          <platform.Icon size={13} aria-hidden="true" /> {platform.label}
-        </span>
-        {(status || memory.privateNoAI) && (
-          <span className="ph-linkonly">{memory.privateNoAI ? F.privateLabel : status}</span>
-        )}
-      </button>
+      {igPost ? (
+        // A real Instagram Reel: its own picture, and a tap opens it on Instagram.
+        <div className="ph-media is-ig">
+          <InstagramThumb post={igPost} title={memory.title} ratio={1} linkLabel={`${F.openOnInstagram}: ${memory.title}`} />
+          <span className="ph-platform">
+            <platform.Icon size={13} aria-hidden="true" /> {platform.label}
+          </span>
+          {(status || memory.privateNoAI) && (
+            <span className="ph-linkonly">{memory.privateNoAI ? F.privateLabel : status}</span>
+          )}
+          <span className="ph-ig-open" aria-hidden="true">
+            <ExternalLink size={13} /> {F.openOnInstagram}
+          </span>
+        </div>
+      ) : (
+        <button type="button" className="ph-media ph-media-btn" onClick={() => onOpen(memory.id)} aria-label={`${t.actionOpen}: ${memory.title}`}>
+          {thumb ? (
+            <img src={thumb} alt="" className={`ph-media-img ${memory.media?.svgThumb ? 'is-contain' : ''}`} />
+          ) : memory.media?.kind === 'image' || memory.media?.kind === 'video' ? (
+            <ImageIcon size={52} strokeWidth={1.2} aria-hidden="true" />
+          ) : (
+            <PurposeIcon size={56} strokeWidth={1.2} aria-hidden="true" />
+          )}
+          <span className="ph-platform">
+            <platform.Icon size={13} aria-hidden="true" /> {platform.label}
+          </span>
+          {(status || memory.privateNoAI) && (
+            <span className="ph-linkonly">{memory.privateNoAI ? F.privateLabel : status}</span>
+          )}
+        </button>
+      )}
 
       <div className="ph-rail">
         {memory.url && (

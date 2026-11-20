@@ -30,6 +30,7 @@ export interface FeedStrings {
   cancel: string;
   uncategorized: string;
   sampleChip: string;
+  openOnInstagram: string;
 }
 
 export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
@@ -62,6 +63,7 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
     cancel: 'Cancel',
     uncategorized: 'Not sorted yet',
     sampleChip: 'Sample library loaded so you can explore. Delete it any time in Settings.',
+    openOnInstagram: 'Open on Instagram',
   },
   hinglish: {
     feed: 'Feed',
@@ -92,6 +94,7 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
     cancel: 'Cancel',
     uncategorized: 'Abhi sort nahi hua',
     sampleChip: 'Sample library load hai taaki tum dekh sako. Settings mein kabhi bhi delete karo.',
+    openOnInstagram: 'Instagram pe kholo',
   },
   hi: {
     feed: 'फ़ीड',
@@ -122,5 +125,6 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
     cancel: 'रद्द करें',
     uncategorized: 'अभी छँटा नहीं',
     sampleChip: 'सैंपल लाइब्रेरी लोड है ताकि आप देख सकें। सेटिंग्स में कभी भी मिटाएँ।',
+    openOnInstagram: 'Instagram पर खोलें',
   },
 };

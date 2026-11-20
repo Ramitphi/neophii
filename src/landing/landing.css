@@ -2931,3 +2931,65 @@ html.lp-root[data-theme='light'] {
 .ph-page > div {
   margin-top: 12px !important;
 }
+
+/* ---------- Instagram picture on cards and tiles (official embed, cropped, opens Instagram) ---------- */
+.ig-thumb {
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  border: 0;
+  background: #f5efe2;
+  pointer-events: none;
+}
+.ig-thumb-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.ig-thumb-link:focus-visible {
+  outline: 3px solid var(--violet, #6c47ff);
+  outline-offset: -4px;
+}
+.ph-media.is-ig {
+  overflow: hidden;
+  background: #1c1815;
+  cursor: pointer;
+}
+.ph-media.is-ig > svg {
+  display: none;
+}
+.ph-media.is-ig .ph-platform,
+.ph-media.is-ig .ph-linkonly,
+.ph-media.is-ig .ph-ig-open {
+  z-index: 2;
+  pointer-events: none;
+}
+.ph-ig-open {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: 2px solid #17130e;
+  border-radius: 999px;
+  background: #fffaf0;
+  color: #17130e;
+  font: 700 0.72rem/1.5 var(--ui, system-ui);
+}
+.ph-media.is-ig:hover .ph-ig-open {
+  background: var(--acc, #ff4fa3);
+  color: var(--acc-ink, #1a0b14);
+}
+/* the save page's Reel tile: labels and the inline player button stay above the link */
+.reel-tile .ig-thumb + .ig-thumb-link ~ .reel-badge,
+.reel-tile .ig-thumb + .ig-thumb-link ~ .reel-overlay {
+  z-index: 2;
+  pointer-events: none;
+}
+.reel-tile .ig-thumb + .ig-thumb-link ~ .reel-preview-btn {
+  z-index: 3;
+}

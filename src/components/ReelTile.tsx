@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Film, Globe, Image as ImageIcon, Link2, Play, X, Youtube } from 'lucide-react';
 import { fetchAuthorizedMediaUrl } from '../lib/api';
+import { InstagramThumb, instagramPost } from './InstagramThumb';
 import type { Memory } from '../types/neophi';
 
 const PALETTES: Array<[string, string]> = [
@@ -16,14 +17,6 @@ function hashString(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
-}
-
-export function instagramEmbedUrl(url: string | null): string | null {
-  if (!url) return null;
-  const m = url.match(/instagram\.com\/(reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i);
-  if (!m) return null;
-  const kind = m[1].toLowerCase() === 'p' ? 'p' : 'reel';
-  return `https://www.instagram.com/${kind}/${m[2]}/embed/`;
 }
 
 function platformLabel(m: Memory): { label: string; Icon: typeof Film } {
@@ -50,7 +43,8 @@ export function ReelTile({
 }) {
   const [thumb, setThumb] = useState<string | null>(null);
   const [showEmbed, setShowEmbed] = useState(false);
-  const embedUrl = instagramEmbedUrl(memory.url);
+  const igPost = memory.ingest === 'unsupported' ? null : instagramPost(memory.url);
+  const embedUrl = igPost?.embed ?? null;
 
   useEffect(() => {
     let active = true;
@@ -117,14 +111,18 @@ export function ReelTile({
       }}
       aria-label={onOpen ? `Open ${memory.title}` : undefined}
     >
-      {!thumb && <div className="reel-tile-pattern" aria-hidden="true" />}
+      {!thumb && !igPost && <div className="reel-tile-pattern" aria-hidden="true" />}
+      {/* A real Instagram Reel shows its own picture; tapping it opens the Reel on Instagram. */}
+      {!thumb && igPost && (
+        <InstagramThumb post={igPost} title={memory.title} ratio={1.25} linkLabel={`Open on Instagram: ${memory.title}`} />
+      )}
 
       <span className="reel-badge">
         <Icon size={14} aria-hidden="true" />
         {label}
       </span>
 
-      {!thumb && (
+      {!thumb && !igPost && (
         <div className="reel-center" aria-hidden="true">
           <div className="reel-play">
             <Play size={28} fill="currentColor" />
