@@ -1,36 +1,50 @@
+// The Library tab: every save, grouped by the user's categories, with counts on the chips and Rename beside
+// each category. Same card, chips and spacing as the Feed.
 import { useState } from 'react';
-import { FeedCard } from '../components/FeedCard';
+import { CategoryChips } from '../components/CategoryChips';
+import { MemoryCard, useCategoryPops, useMemoryActions } from '../components/MemoryCard';
 import { api } from '../lib/api';
 import type { StringsTable } from '../lib/i18n';
-import type { Category, Memory } from '../types/neophi';
+import type { Category, LanguageCode, Memory } from '../types/neophi';
+import { FEED_STRINGS } from './feedStrings';
 
 export function LibraryPage({
   memories,
   categories,
+  lang,
   onOpenMemory,
+  onPatch,
   onRefresh,
   t,
 }: {
   memories: Memory[];
   categories: Category[];
+  lang: LanguageCode;
   onOpenMemory: (id: string) => void;
+  onPatch: (id: string, patch: Partial<Memory>) => Promise<void>;
   onRefresh: () => void;
   t: StringsTable;
 }) {
+  const F = FEED_STRINGS[lang];
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameText, setRenameText] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const { categoryOf, popOf } = useCategoryPops(categories);
+  const { act, addNote, copy } = useMemoryActions(lang, onPatch);
 
-  const grouped = new Map<string, Memory[]>();
-  for (const cat of categories) {
-    grouped.set(cat.id, []);
+  if (memories.length === 0) {
+    return <p className="ph-empty">{F.libraryEmpty}</p>;
   }
-  grouped.set('uncategorized', []);
 
-  for (const m of memories) {
-    const key = m.categoryId && grouped.has(m.categoryId) ? m.categoryId : 'uncategorized';
-    grouped.get(key)!.push(m);
+  const sorted = [...memories].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const groups = new Map<string, Memory[]>(categories.map((c) => [c.id, []]));
+  groups.set('uncategorized', []);
+  for (const m of sorted) {
+    const key = m.categoryId && groups.has(m.categoryId) ? m.categoryId : 'uncategorized';
+    groups.get(key)!.push(m);
   }
+  const counts = new Map(Array.from(groups.entries()).map(([id, items]) => [id, items.length]));
+  const chipCategories = categories.filter((c) => (counts.get(c.id) ?? 0) > 0);
 
   const handleRename = async (catId: string) => {
     if (!renameText.trim()) return;
@@ -39,113 +53,84 @@ export function LibraryPage({
     onRefresh();
   };
 
-  if (memories.length === 0) {
-    return (
-      <div className="card" style={{ marginTop: 24, padding: 24 }}>
-        <p className="muted">Your library is empty. Save something or load the sample library from Today.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="feed-column" style={{ marginTop: 16 }}>
-      {/* Horizontal category filter pills */}
-      <div className="chip-scroller" role="toolbar" aria-label="Filter by category">
-        <button
-          type="button"
-          className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
-          aria-pressed={activeCategory === 'all'}
-          onClick={() => setActiveCategory('all')}
-        >
-          All
-          <span className="filter-chip-count">{memories.length}</span>
-        </button>
-        {categories.map((c) => {
-          const count = grouped.get(c.id)?.length ?? 0;
-          if (count === 0) return null;
-          return (
-            <button
-              key={c.id}
-              type="button"
-              className={`filter-chip ${activeCategory === c.id ? 'active' : ''}`}
-              aria-pressed={activeCategory === c.id}
-              onClick={() => setActiveCategory(c.id)}
-            >
-              {c.name}
-              <span className="filter-chip-count">{count}</span>
-            </button>
-          );
-        })}
-      </div>
+    <>
+      <CategoryChips
+        lang={lang}
+        categories={chipCategories}
+        palette={categories}
+        active={activeCategory}
+        onChange={setActiveCategory}
+        counts={counts}
+        allCount={memories.length}
+      />
 
-      {Array.from(grouped.entries()).map(([catId, items]) => {
+      {Array.from(groups.entries()).map(([catId, items]) => {
         if (items.length === 0) return null;
         if (activeCategory !== 'all' && activeCategory !== catId) return null;
         const cat = categories.find((c) => c.id === catId);
-        const heading = cat ? cat.name : 'Uncategorized';
-
         return (
-          <section key={catId} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 8,
-              }}
-            >
+          <section key={catId} className="ph-section">
+            <div className="ph-section-head">
               {renamingId === catId ? (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <form
+                  className="ph-rename ph-chrome"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleRename(catId);
+                  }}
+                >
                   <input
+                    id={`rename-${catId}`}
                     value={renameText}
                     onChange={(e) => setRenameText(e.target.value)}
-                    style={{
-                      minHeight: 48,
-                      padding: '8px 12px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border)',
-                    }}
+                    aria-label={F.rename}
+                    autoFocus
                   />
-                  <button type="button" className="btn-primary" onClick={() => void handleRename(catId)}>
-                    Save
+                  <button type="submit" className="ph-section-toggle is-primary">
+                    {F.save}
                   </button>
-                  <button type="button" onClick={() => setRenamingId(null)}>
-                    Cancel
+                  <button type="button" className="ph-section-toggle" onClick={() => setRenamingId(null)}>
+                    {F.cancel}
                   </button>
-                </div>
+                </form>
               ) : (
                 <>
-                  <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                    {heading}
+                  <h2>
+                    {cat ? cat.name : F.uncategorized} <span className="ph-chip-count">{items.length}</span>
                   </h2>
                   {cat && (
                     <button
                       type="button"
+                      className="ph-section-toggle"
                       onClick={() => {
                         setRenamingId(cat.id);
                         setRenameText(cat.name);
                       }}
                     >
-                      Rename
+                      {F.rename}
                     </button>
                   )}
                 </>
               )}
             </div>
-
             {items.map((m) => (
-              <FeedCard
+              <MemoryCard
                 key={m.id}
                 memory={m}
-                onOpen={onOpenMemory}
-                onRefresh={onRefresh}
+                category={categoryOf(m)}
+                pop={popOf(m)}
+                lang={lang}
                 t={t}
+                onOpen={onOpenMemory}
+                onAct={(mem, a) => void act(mem, a)}
+                onAddNote={addNote}
+                onCopy={(u) => void copy(u)}
               />
             ))}
           </section>
         );
       })}
-    </div>
+    </>
   );
 }

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Compass, FolderKanban, Home, Instagram, Moon, Plus, Search, Settings, Sun, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Instagram, X } from 'lucide-react';
+import { AppShell, type ShellTab } from './components/AppShell';
 import { CaptureModal } from './components/CaptureModal';
 import { InstagramConnectModal } from './components/InstagramConnectModal';
 import { FeedPage } from './pages/FeedPage';
@@ -229,20 +230,30 @@ export function App() {
     window.scrollTo(0, 0);
   };
 
+  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+
   if (LANDING_PREVIEW && previewData) {
     return (
-      <div className="lp ph-app">
+      <AppShell
+        active="feed"
+        lang={lang}
+        t={t}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onNavigate={() => {}}
+        onSave={() => {}}
+        onSearch={() => {}}
+        snap
+        previewNote={FEED_STRINGS[lang].previewNote}
+        onLogo={() => setPreviewData(null)}
+      >
         <FeedPage
           memories={previewData.memories}
           categories={previewData.categories}
           lang={lang}
           t={t}
-          theme={theme}
-          onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
           onOpenMemory={() => {}}
           onOpenCapture={() => {}}
-          onOpenSearch={() => {}}
-          onNavigate={() => {}}
           onLoadSamples={async () => {}}
           onPatch={async (id, patch) =>
             setPreviewData((d) =>
@@ -250,11 +261,11 @@ export function App() {
             )
           }
           previewNote={FEED_STRINGS[lang].previewNote}
-          onLogo={() => setPreviewData(null)}
         />
-      </div>
+      </AppShell>
     );
   }
+
 
   if (showLanding) {
     return (
@@ -326,240 +337,133 @@ export function App() {
     </>
   );
 
-  if (tab === 'feed' && !selectedMemoryId) {
-    return (
-      <>
-        {/* The feed uses the landing page's Mindful-paper tokens (.lp) and phone-feed styles. */}
-        <div className="lp ph-app">
-          <FeedPage
-            memories={memories}
-            categories={categories}
-            lang={lang}
-            t={t}
-            theme={theme}
-            onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
-            onOpenMemory={openMemory}
-            onOpenCapture={() => {
-              setCaptureFocusUrl(false);
-              setCaptureOpen(true);
-            }}
-            onOpenSearch={() => setSearchOpen(true)}
-            onNavigate={(next) => setTab(next)}
-            onLoadSamples={async () => {
-              await api.loadSamples();
-              await refreshAll();
-            }}
-            onPatch={async (id, patch) => {
-              await api.patchMemory(id, patch);
-              await refreshAll();
-            }}
-            instagram={ig}
-            onConnectInstagram={() => setIgOpen(true)}
-          />
-        </div>
-        {modals}
-      </>
+  const patchMemory = async (id: string, patch: Partial<Memory>) => {
+    await api.patchMemory(id, patch);
+    await refreshAll();
+  };
+  const loadSamples = async () => {
+    await api.loadSamples();
+    await refreshAll();
+  };
+  const openCapture = (focusUrl = false) => {
+    setCaptureFocusUrl(focusUrl);
+    setCaptureOpen(true);
+  };
+  const navigate = (next: ShellTab) => {
+    setSelectedMemoryId(null);
+    setTab(next);
+  };
+  const F = FEED_STRINGS[lang];
+
+  let page: ReactNode;
+  if (selectedMemoryId) {
+    page = (
+      <div className="ph-page">
+        <MemoryPage
+          memoryId={selectedMemoryId}
+          categories={categories}
+          projects={projects}
+          onBack={() => setSelectedMemoryId(null)}
+          onRefresh={() => void refreshAll()}
+          lang={lang}
+          t={t}
+        />
+      </div>
+    );
+  } else if (tab === 'feed') {
+    page = (
+      <FeedPage
+        memories={memories}
+        categories={categories}
+        lang={lang}
+        t={t}
+        onOpenMemory={openMemory}
+        onOpenCapture={() => openCapture(false)}
+        onLoadSamples={loadSamples}
+        onPatch={patchMemory}
+        instagram={ig}
+        onConnectInstagram={() => setIgOpen(true)}
+      />
+    );
+  } else if (tab === 'today') {
+    page = (
+      <TodayPage
+        feed={todayFeed}
+        categories={categories}
+        memories={memories}
+        lang={lang}
+        readyForHourEnabled={readyForHourEnabled}
+        onToggleReadyForHour={() => {
+          const next = !readyForHourEnabled;
+          setReadyForHourEnabled(next);
+          writeStore('neophi_ready_hour', next ? '1' : '0');
+        }}
+        onOpenMemory={openMemory}
+        onOpenCapture={openCapture}
+        onLoadSamples={loadSamples}
+        onPatch={patchMemory}
+        t={t}
+      />
+    );
+  } else if (tab === 'library') {
+    page = (
+      <LibraryPage
+        memories={memories}
+        categories={categories}
+        lang={lang}
+        onOpenMemory={openMemory}
+        onPatch={patchMemory}
+        onRefresh={() => void refreshAll()}
+        t={t}
+      />
+    );
+  } else if (tab === 'projects') {
+    page = (
+      <div className="ph-page">
+        <ProjectsPage
+          projects={projects}
+          memories={memories}
+          onOpenMemory={openMemory}
+          onRefresh={() => void refreshAll()}
+          t={t}
+        />
+      </div>
+    );
+  } else {
+    page = (
+      <div className="ph-page">
+        <SettingsPage
+          lang={lang}
+          onChangeLang={setLang}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onRefresh={() => void refreshAll()}
+          instagram={ig}
+          onConnectInstagram={() => setIgOpen(true)}
+          t={t}
+        />
+      </div>
     );
   }
 
   return (
-    <div>
-      <header className="nav-bar">
-        <div className="nav-inner">
-          <div className="nav-left">
-            <button
-              type="button"
-              className="serif-title nav-logo"
-              onClick={() => {
-                setSelectedMemoryId(null);
-                setTab('feed');
-              }}
-            >
-              {t.appName}
-            </button>
-
-            <nav className="nav-links" aria-label="Main navigation">
-              {(
-                [
-                  { id: 'feed', label: FEED_STRINGS[lang].feed },
-                  { id: 'today', label: t.navToday },
-                  { id: 'library', label: t.navLibrary },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`nav-tab ${!selectedMemoryId && tab === item.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedMemoryId(null);
-                    setTab(item.id);
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="nav-right">
-            <button
-              type="button"
-              className="nav-icon-btn"
-              onClick={() => setSearchOpen(true)}
-              aria-label={t.searchPlaceholder}
-              title={t.searchShortcut}
-            >
-              <Search size={20} aria-hidden="true" />
-            </button>
-
-            <button
-              type="button"
-              className="nav-icon-btn"
-              onClick={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
-              aria-label={t.settingsTheme}
-            >
-              {theme === 'light' ? <Moon size={20} aria-hidden="true" /> : <Sun size={20} aria-hidden="true" />}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container">
-        {isIgBrowser && (
-          <div className="card" style={{ marginTop: 16, borderColor: 'var(--accent)' }} role="status">
-            {t.instagramBanner}
-          </div>
-        )}
-
-        {hasSamples && (
-          <div className="card" style={{ marginTop: 16, background: 'var(--surface-muted)' }} role="status">
-            {t.sampleBanner}
-          </div>
-        )}
-
-        {selectedMemoryId ? (
-          <MemoryPage
-            memoryId={selectedMemoryId}
-            categories={categories}
-            projects={projects}
-            onBack={() => setSelectedMemoryId(null)}
-            onRefresh={() => void refreshAll()}
-            lang={lang}
-            t={t}
-          />
-        ) : tab === 'today' ? (
-          <TodayPage
-            feed={todayFeed}
-            categories={categories}
-            memories={memories}
-            readyForHourEnabled={readyForHourEnabled}
-            onToggleReadyForHour={() => {
-              const next = !readyForHourEnabled;
-              setReadyForHourEnabled(next);
-              writeStore('neophi_ready_hour', next ? '1' : '0');
-            }}
-            onOpenMemory={openMemory}
-            onOpenCapture={(focusUrl) => {
-              setCaptureFocusUrl(Boolean(focusUrl));
-              setCaptureOpen(true);
-            }}
-            onLoadSamples={async () => {
-              await api.loadSamples();
-              await refreshAll();
-            }}
-            onRefresh={() => void refreshAll()}
-            t={t}
-          />
-        ) : tab === 'library' ? (
-          <LibraryPage
-            memories={memories}
-            categories={categories}
-            onOpenMemory={openMemory}
-            onRefresh={() => void refreshAll()}
-            t={t}
-          />
-        ) : tab === 'projects' ? (
-          <ProjectsPage
-            projects={projects}
-            memories={memories}
-            onOpenMemory={openMemory}
-            onRefresh={() => void refreshAll()}
-            t={t}
-          />
-        ) : (
-          <SettingsPage
-            lang={lang}
-            onChangeLang={setLang}
-            theme={theme}
-            onToggleTheme={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
-            onRefresh={() => void refreshAll()}
-            instagram={ig}
-            onConnectInstagram={() => setIgOpen(true)}
-            t={t}
-          />
-        )}
-      </main>
-
+    <>
+      <AppShell
+        active={selectedMemoryId ? null : tab}
+        lang={lang}
+        t={t}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onNavigate={navigate}
+        onSave={() => openCapture(false)}
+        onSearch={() => setSearchOpen(true)}
+        notice={isIgBrowser ? t.instagramBanner : hasSamples ? F.sampleChip : null}
+        snap={tab === 'feed' && !selectedMemoryId}
+      >
+        {page}
+      </AppShell>
       {modals}
-
-      <nav className="bottom-nav" aria-label="Mobile navigation">
-        <button
-          type="button"
-          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'today' ? 'active' : ''}`}
-          aria-label={t.navToday}
-          onClick={() => {
-            setSelectedMemoryId(null);
-            setTab('today');
-          }}
-        >
-          <Home size={22} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'library' ? 'active' : ''}`}
-          aria-label={t.navLibrary}
-          onClick={() => {
-            setSelectedMemoryId(null);
-            setTab('library');
-          }}
-        >
-          <Compass size={22} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="bottom-nav-btn bottom-nav-add"
-          aria-label={t.saveButton}
-          onClick={() => {
-            setCaptureFocusUrl(false);
-            setCaptureOpen(true);
-          }}
-        >
-          <Plus size={24} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'projects' ? 'active' : ''}`}
-          aria-label={t.navProjects}
-          onClick={() => {
-            setSelectedMemoryId(null);
-            setTab('projects');
-          }}
-        >
-          <FolderKanban size={22} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={`bottom-nav-btn ${!selectedMemoryId && tab === 'settings' ? 'active' : ''}`}
-          aria-label={t.navSettings}
-          onClick={() => {
-            setSelectedMemoryId(null);
-            setTab('settings');
-          }}
-        >
-          <Settings size={22} aria-hidden="true" />
-        </button>
-      </nav>
-    </div>
+    </>
   );
 }
 

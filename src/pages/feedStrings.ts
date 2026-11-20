@@ -21,6 +21,16 @@ export interface FeedStrings {
   allCaughtUp: string;
   theme: string;
   previewNote: string;
+  loading: string;
+  switchOn: string;
+  switchOff: string;
+  libraryEmpty: string;
+  rename: string;
+  save: string;
+  cancel: string;
+  uncategorized: string;
+  sampleChip: string;
+  openOnInstagram: string;
   /** Saving from Instagram: connect once, then share Reels to the account. */
   ig: InstagramStrings;
 }
@@ -85,6 +95,16 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
     allCaughtUp: 'You are all caught up. Saves marked Later come back here.',
     theme: 'Theme',
     previewNote: 'Preview: this part needs the Neophi server. Later, Done and Add context work here.',
+    loading: 'Loading…',
+    switchOn: 'Switch on',
+    switchOff: 'Switch off',
+    libraryEmpty: 'Your library is empty. Save something with +, or try the sample library from Feed.',
+    rename: 'Rename',
+    save: 'Save',
+    cancel: 'Cancel',
+    uncategorized: 'Not sorted yet',
+    sampleChip: 'Sample library loaded so you can explore. Delete it any time in Settings.',
+    openOnInstagram: 'Open on Instagram',
     ig: {
       stripTitle: 'Save straight from Instagram',
       stripBody: (h) => (h ? `Connect once, then share any Reel to @${h}.` : 'Connect once, then share any Reel to our account.'),
@@ -145,6 +165,16 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
     allCaughtUp: 'Sab dekh liya. Later wale saves yahan wapas aayenge.',
     theme: 'Theme',
     previewNote: 'Preview: is hisse ke liye Neophi server chahiye. Later, Done aur context yahan chalte hain.',
+    loading: 'Load ho raha hai…',
+    switchOn: 'On karo',
+    switchOff: 'Off karo',
+    libraryEmpty: 'Library khaali hai. + se kuch save karo, ya Feed se sample library try karo.',
+    rename: 'Naam badlo',
+    save: 'Save',
+    cancel: 'Cancel',
+    uncategorized: 'Abhi sort nahi hua',
+    sampleChip: 'Sample library load hai taaki tum dekh sako. Settings mein kabhi bhi delete karo.',
+    openOnInstagram: 'Instagram pe kholo',
     ig: {
       stripTitle: 'Seedha Instagram se save karo',
       stripBody: (h) => (h ? `Ek baar connect karo, phir koi bhi Reel @${h} ko bhejo.` : 'Ek baar connect karo, phir koi bhi Reel humare account ko bhejo.'),
@@ -205,6 +235,16 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
     allCaughtUp: 'सब देख लिया। “बाद में” वाले सेव यहाँ लौटेंगे।',
     theme: 'थीम',
     previewNote: 'प्रीव्यू: इस हिस्से के लिए Neophi सर्वर चाहिए। “बाद में”, “हो गया” और संदर्भ जोड़ना यहाँ चलते हैं।',
+    loading: 'लोड हो रहा है…',
+    switchOn: 'चालू करें',
+    switchOff: 'बंद करें',
+    libraryEmpty: 'लाइब्रेरी खाली है। + से कुछ सेव करें, या फ़ीड से सैंपल लाइब्रेरी आज़माएँ।',
+    rename: 'नाम बदलें',
+    save: 'सेव करें',
+    cancel: 'रद्द करें',
+    uncategorized: 'अभी छँटा नहीं',
+    sampleChip: 'सैंपल लाइब्रेरी लोड है ताकि आप देख सकें। सेटिंग्स में कभी भी मिटाएँ।',
+    openOnInstagram: 'Instagram पर खोलें',
     ig: {
       stripTitle: 'सीधे Instagram से सेव करें',
       stripBody: (h) => (h ? `एक बार जोड़ें, फिर कोई भी रील @${h} को भेजें।` : 'एक बार जोड़ें, फिर कोई भी रील हमारे अकाउंट को भेजें।'),

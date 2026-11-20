@@ -1,251 +1,146 @@
-import { useState } from 'react';
-import { FeedCard } from '../components/FeedCard';
+// The Today tab: saves brought back for a reason (just arrived, asked for, active projects, this hour, before it
+// fades, this week), each with "Why am I seeing this?". Same card, chips and spacing as the Feed.
+import { useState, type ReactNode } from 'react';
+import { CategoryChips } from '../components/CategoryChips';
+import { MemoryCard, useCategoryPops, useMemoryActions } from '../components/MemoryCard';
 import type { StringsTable } from '../lib/i18n';
-import type { Category, Memory, TodayResponse } from '../types/neophi';
+import type { Category, LanguageCode, Memory, TodayCard, TodayResponse } from '../types/neophi';
+import { FEED_STRINGS } from './feedStrings';
 
 export function TodayPage({
   feed,
   categories,
   memories,
+  lang,
   readyForHourEnabled,
   onToggleReadyForHour,
   onOpenMemory,
   onOpenCapture,
   onLoadSamples,
-  onRefresh,
+  onPatch,
   t,
 }: {
   feed: TodayResponse | null;
   categories: Category[];
   memories: Memory[];
+  lang: LanguageCode;
   readyForHourEnabled: boolean;
   onToggleReadyForHour: () => void;
   onOpenMemory: (id: string) => void;
   onOpenCapture: (focusUrl?: boolean) => void;
   onLoadSamples: () => Promise<void>;
-  onRefresh: () => void;
+  onPatch: (id: string, patch: Partial<Memory>) => Promise<void>;
   t: StringsTable;
 }) {
+  const F = FEED_STRINGS[lang];
   const [loadingSamples, setLoadingSamples] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const { categoryOf, popOf } = useCategoryPops(categories);
+  const { act, addNote, copy } = useMemoryActions(lang, onPatch);
 
   if (!feed) {
-    return <p className="muted">Loading…</p>;
+    return <p className="ph-empty">{F.loading}</p>;
   }
 
   if (feed.isEmptyLibrary) {
     return (
-      <section
-        className="card"
-        style={{
-          marginTop: 24,
-          padding: 32,
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 18,
-        }}
-      >
-        <h1 className="serif-title" style={{ fontSize: '2rem', maxWidth: 540 }}>
-          {t.day0Headline}
-        </h1>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-          <button type="button" className="btn-primary" onClick={() => onOpenCapture(false)}>
-            {t.day0SaveNow}
-          </button>
-          <button type="button" onClick={() => onOpenCapture(true)}>
-            {t.day0PasteLink}
-          </button>
-          <button
-            type="button"
-            disabled={loadingSamples}
-            onClick={async () => {
-              setLoadingSamples(true);
-              try {
-                await onLoadSamples();
-              } finally {
-                setLoadingSamples(false);
-              }
-            }}
-          >
-            {loadingSamples ? 'Loading…' : t.day0TrySamples}
-          </button>
-        </div>
-      </section>
+      <div className="ph-welcome">
+        <h2>{t.day0Headline}</h2>
+        <button type="button" className="ph-try" onClick={() => onOpenCapture(false)}>
+          {t.day0SaveNow}
+        </button>
+        <button type="button" className="ph-sheet-cancel" onClick={() => onOpenCapture(true)}>
+          {t.day0PasteLink}
+        </button>
+        <button
+          type="button"
+          className="ph-sheet-cancel"
+          disabled={loadingSamples}
+          onClick={async () => {
+            setLoadingSamples(true);
+            try {
+              await onLoadSamples();
+            } finally {
+              setLoadingSamples(false);
+            }
+          }}
+        >
+          {loadingSamples ? F.loading : t.day0TrySamples}
+        </button>
+      </div>
     );
   }
 
-  const filteredMemories =
-    activeCategory === 'all'
-      ? []
-      : memories.filter((m) => m.categoryId === activeCategory && !m.doneAt);
+  const card = (memory: Memory, why?: string) => (
+    <MemoryCard
+      key={memory.id}
+      memory={memory}
+      why={why}
+      category={categoryOf(memory)}
+      pop={popOf(memory)}
+      lang={lang}
+      t={t}
+      onOpen={onOpenMemory}
+      onAct={(mem, a) => void act(mem, a)}
+      onAddNote={addNote}
+      onCopy={(u) => void copy(u)}
+    />
+  );
+  const cards = (list: TodayCard[]) => list.map((c) => card(c.memory, c.whySeeing));
+
+  const open = memories.filter((m) => !m.doneAt);
+  const counts = new Map(categories.map((c) => [c.id, open.filter((m) => m.categoryId === c.id).length]));
+  const chipCategories = categories.filter((c) => (counts.get(c.id) ?? 0) > 0);
+
+  const section = (title: string, body: ReactNode, aside?: ReactNode) => (
+    <section className="ph-section">
+      <div className="ph-section-head">
+        <h2>{title}</h2>
+        {aside}
+      </div>
+      {body}
+    </section>
+  );
 
   return (
-    <div className="feed-column" style={{ marginTop: 16 }}>
-      {/* Category filter tiles */}
-      {categories.length > 0 && (
-        <div className="chip-scroller" role="toolbar" aria-label="Filter by category">
-          <button
-            type="button"
-            className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
-            aria-pressed={activeCategory === 'all'}
-            onClick={() => setActiveCategory('all')}
-          >
-            All
-          </button>
-          {categories.map((cat) => {
-            const count = memories.filter((m) => m.categoryId === cat.id && !m.doneAt).length;
-            if (count === 0) return null;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                className={`filter-chip ${activeCategory === cat.id ? 'active' : ''}`}
-                aria-pressed={activeCategory === cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-              >
-                {cat.name}
-                <span className="filter-chip-count">{count}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <>
+      <CategoryChips
+        lang={lang}
+        categories={chipCategories}
+        palette={categories}
+        active={activeCategory}
+        onChange={setActiveCategory}
+        counts={counts}
+      />
 
       {activeCategory !== 'all' ? (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {filteredMemories.map((m) => (
-            <FeedCard
-              key={m.id}
-              memory={m}
-              onOpen={onOpenMemory}
-              onRefresh={onRefresh}
-              t={t}
-            />
-          ))}
-        </section>
+        open.filter((m) => m.categoryId === activeCategory).map((m) => card(m))
       ) : (
         <>
-          {feed.justArrived.length > 0 && (
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                {t.sectionJustArrived}
-              </h2>
-              {feed.justArrived.map((c) => (
-                <FeedCard
-                  key={c.memory.id}
-                  memory={c.memory}
-                  whySeeing={c.whySeeing}
-                  onOpen={onOpenMemory}
-                  onRefresh={onRefresh}
-                  t={t}
-                />
-              ))}
-            </section>
-          )}
-
-          {feed.youAskedForThis.length > 0 && (
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                {t.sectionYouAsked}
-              </h2>
-              {feed.youAskedForThis.map((c) => (
-                <FeedCard
-                  key={c.memory.id}
-                  memory={c.memory}
-                  whySeeing={c.whySeeing}
-                  onOpen={onOpenMemory}
-                  onRefresh={onRefresh}
-                  t={t}
-                />
-              ))}
-            </section>
-          )}
-
-          {feed.activeProjects.length > 0 && (
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                {t.sectionActiveProjects}
-              </h2>
-              {feed.activeProjects.map((grp) => (
-                <div key={grp.project.id} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <h3 className="serif-title" style={{ fontSize: '1.1rem' }}>
-                    {grp.project.name}
-                  </h3>
-                  {grp.cards.map((c) => (
-                    <FeedCard
-                      key={c.memory.id}
-                      memory={c.memory}
-                      whySeeing={c.whySeeing}
-                      onOpen={onOpenMemory}
-                      onRefresh={onRefresh}
-                      t={t}
-                    />
-                  ))}
+          {feed.justArrived.length > 0 && section(t.sectionJustArrived, cards(feed.justArrived))}
+          {feed.youAskedForThis.length > 0 && section(t.sectionYouAsked, cards(feed.youAskedForThis))}
+          {feed.activeProjects.length > 0 &&
+            section(
+              t.sectionActiveProjects,
+              feed.activeProjects.map((grp) => (
+                <div key={grp.project.id} className="ph-subsection">
+                  <h3>{grp.project.name}</h3>
+                  {cards(grp.cards)}
                 </div>
-              ))}
-            </section>
-          )}
-
-          {(feed.readyForThisHour.cards.length > 0 || !readyForHourEnabled) && (
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                  {t.sectionReadyForHour} ({feed.readyForThisHour.windowLabel})
-                </h2>
-                <button type="button" onClick={onToggleReadyForHour}>
-                  {readyForHourEnabled ? 'Switch off' : 'Switch on'}
-                </button>
-              </div>
-              {readyForHourEnabled &&
-                feed.readyForThisHour.cards.map((c) => (
-                  <FeedCard
-                    key={c.memory.id}
-                    memory={c.memory}
-                    whySeeing={c.whySeeing}
-                    onOpen={onOpenMemory}
-                    onRefresh={onRefresh}
-                    t={t}
-                  />
-                ))}
-            </section>
-          )}
-
-          {feed.beforeItFades && (
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                {t.sectionBeforeItFades}
-              </h2>
-              <FeedCard
-                memory={feed.beforeItFades.memory}
-                whySeeing={feed.beforeItFades.whySeeing}
-                onOpen={onOpenMemory}
-                onRefresh={onRefresh}
-                t={t}
-              />
-            </section>
-          )}
-
-          {feed.weeklyCard.visible && feed.weeklyCard.cards.length > 0 && (
-            <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 className="serif-title" style={{ fontSize: '1.35rem' }}>
-                {t.sectionWeekly}
-              </h2>
-              {feed.weeklyCard.cards.map((c) => (
-                <FeedCard
-                  key={c.memory.id}
-                  memory={c.memory}
-                  whySeeing={c.whySeeing}
-                  onOpen={onOpenMemory}
-                  onRefresh={onRefresh}
-                  t={t}
-                />
-              ))}
-            </section>
-          )}
+              ))
+            )}
+          {(feed.readyForThisHour.cards.length > 0 || !readyForHourEnabled) &&
+            section(
+              `${t.sectionReadyForHour} (${feed.readyForThisHour.windowLabel})`,
+              readyForHourEnabled ? cards(feed.readyForThisHour.cards) : null,
+              <button type="button" className="ph-section-toggle" aria-pressed={readyForHourEnabled} onClick={onToggleReadyForHour}>
+                {readyForHourEnabled ? F.switchOff : F.switchOn}
+              </button>
+            )}
+          {feed.beforeItFades && section(t.sectionBeforeItFades, card(feed.beforeItFades.memory, feed.beforeItFades.whySeeing))}
+          {feed.weeklyCard.visible && feed.weeklyCard.cards.length > 0 && section(t.sectionWeekly, cards(feed.weeklyCard.cards))}
         </>
       )}
-    </div>
+    </>
   );
 }
