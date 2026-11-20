@@ -60,6 +60,8 @@ export interface StringsTable {
   settingsModels: string;
   settingsLanguage: string;
   settingsTheme: string;
+  settingsThemeToDark: string;
+  settingsThemeToLight: string;
   settingsExport: string;
   settingsImport: string;
   settingsDeleteAll: string;
@@ -136,6 +138,8 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     settingsModels: 'Models in use',
     settingsLanguage: 'Language',
     settingsTheme: 'Theme',
+    settingsThemeToDark: 'Switch to dark theme',
+    settingsThemeToLight: 'Switch to light theme',
     settingsExport: 'Export all (JSON)',
     settingsImport: 'Import JSON',
     settingsDeleteAll: 'Delete everything',
@@ -211,6 +215,8 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     settingsModels: 'Chal rahe models',
     settingsLanguage: 'Bhasha (Language)',
     settingsTheme: 'Theme',
+    settingsThemeToDark: 'Dark theme pe jao',
+    settingsThemeToLight: 'Light theme pe jao',
     settingsExport: 'Sab export karo (JSON)',
     settingsImport: 'JSON import karo',
     settingsDeleteAll: 'Sab kuch delete karo',
@@ -286,6 +292,8 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     settingsModels: 'उपयोग हो रहे मॉडल',
     settingsLanguage: 'भाषा',
     settingsTheme: 'थीम',
+    settingsThemeToDark: 'डार्क थीम चुनें',
+    settingsThemeToLight: 'लाइट थीम चुनें',
     settingsExport: 'सब एक्सपोर्ट करें (JSON)',
     settingsImport: 'JSON इम्पोर्ट करें',
     settingsDeleteAll: 'सब कुछ हटाएं',

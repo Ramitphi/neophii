@@ -112,7 +112,7 @@ export function SettingsPage({
         </h2>
         <div>
           <button type="button" onClick={onToggleTheme}>
-            {theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+            {theme === 'light' ? t.settingsThemeToDark : t.settingsThemeToLight}
           </button>
         </div>
       </section>
