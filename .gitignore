@@ -2,5 +2,10 @@ node_modules/
 dist/
 .env
 .env.local
+# Any other env file (e.g. .env.production with the Firebase web config); only the example is tracked.
+.env.*
+!.env.example
+# Local deploy state written by scripts/deploy (last image, service URL).
+.deploy/
 *.log
 .DS_Store
