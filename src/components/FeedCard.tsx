@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Check, Clock, HelpCircle, Pencil, Undo2 } from 'lucide-react';
+import { Calendar, Check, Clock, ExternalLink, HelpCircle, Pencil, Undo2 } from 'lucide-react';
 import { api, fetchAuthorizedMediaUrl } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
 import type { StringsTable } from '../lib/i18n';
@@ -194,13 +194,25 @@ export function FeedCard({
           <button type="button" className="btn-primary" onClick={() => onOpen(memory.id)}>
             {t.actionOpen}
           </button>
+          {memory.url && (
+            <a
+              href={memory.url}
+              target="_blank"
+              rel="noreferrer"
+              className="btn"
+              title="Open original link"
+              aria-label="Open original link"
+            >
+              <ExternalLink size={16} aria-hidden="true" />
+            </a>
+          )}
           <button
             type="button"
             className="feed-note-trigger"
             onClick={() => onOpen(memory.id)}
           >
             <Pencil size={15} aria-hidden="true" />
-            <span>{memory.note ? 'Edit your note…' : 'Add your note…'}</span>
+            <span>{memory.note ? 'Edit note…' : 'Add note…'}</span>
           </button>
         </div>
       </div>

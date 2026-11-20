@@ -196,6 +196,8 @@ export function App() {
         ) : tab === 'today' ? (
           <TodayPage
             feed={todayFeed}
+            categories={categories}
+            memories={memories}
             readyForHourEnabled={readyForHourEnabled}
             onToggleReadyForHour={() => {
               const next = !readyForHourEnabled;
