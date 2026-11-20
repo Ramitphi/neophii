@@ -11,8 +11,12 @@ import type {
   NoteGrounding,
   NoteGroundingStatus,
   ObservedObject,
+  ReelType,
   SuggestedAction,
+  TypeDetail,
+  TypeDetailField,
 } from '../src/types/neophi.js';
+import { REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
 
 export const NOT_SURE_CONFIDENCE_THRESHOLD = 0.45;
 
@@ -33,6 +37,11 @@ const VALID_ACTIONS = new Set<SuggestedAction>([
   'set_reminder',
   'itinerary_stop',
 ]);
+const VALID_REEL_TYPES = new Set<ReelType>(REEL_TYPES);
+const VALID_DETAIL_FIELDS = new Set<TypeDetailField>(TYPE_DETAIL_FIELDS);
+/** At most this many type details are kept, so one reading cannot flood the page. */
+export const MAX_TYPE_DETAILS = 12;
+
 const VALID_GROUNDING_STATUSES = new Set<NoteGroundingStatus>([
   'grounded',
   'not_sure',
@@ -97,6 +106,11 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
       actionable_entities: [],
       suggested_actions: [],
       purpose: 'other',
+      reel_type: 'personal_other',
+      reel_type_confidence: 0,
+      reel_type_evidence: [],
+      reel_type_uncertain: true,
+      type_details: [],
       note_grounding: hasNote
         ? {
             status: 'not_attempted',
@@ -256,6 +270,33 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     ? (rawPurpose as MemoryPurpose)
     : 'other';
 
+  // 5b. Reel type (fixed list) and type-specific details. A detail is a fact, so it needs surviving evidence.
+  const rawType = typeof input.reel_type === 'string' ? input.reel_type : '';
+  const reel_type: ReelType = VALID_REEL_TYPES.has(rawType as ReelType) ? (rawType as ReelType) : 'personal_other';
+  const typeRefs = filterEvidenceRefs(input.reel_type_evidence);
+  const reel_type_evidence = typeRefs.reliedOnlyOnDroppedMedia ? [] : typeRefs.surviving;
+  const reel_type_confidence = clamp(input.reel_type_confidence, 0, 1);
+  const reel_type_uncertain =
+    reel_type_evidence.length === 0 || reel_type_confidence < NOT_SURE_CONFIDENCE_THRESHOLD;
+
+  const rawDetails = Array.isArray(input.type_details) ? input.type_details : [];
+  const type_details: TypeDetail[] = [];
+  const seenDetails = new Set<string>();
+  for (const item of rawDetails) {
+    if (type_details.length >= MAX_TYPE_DETAILS) break;
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const field = typeof rec.field === 'string' ? rec.field : '';
+    const value = typeof rec.value === 'string' ? rec.value.trim() : '';
+    if (!value || !VALID_DETAIL_FIELDS.has(field as TypeDetailField)) continue;
+    const { surviving } = filterEvidenceRefs(rec.evidence);
+    if (surviving.length === 0) continue;
+    const key = `${field}\u0000${value.toLowerCase()}`;
+    if (seenDetails.has(key)) continue;
+    seenDetails.add(key);
+    type_details.push({ field: field as TypeDetailField, value, evidence: surviving });
+  }
+
   // 6. Visible text & transcript (dropped for link_metadata since no media)
   const visible_text =
     memory.ingest === 'link_metadata'
@@ -317,5 +358,10 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     suggested_actions,
     purpose,
     note_grounding,
+    reel_type,
+    reel_type_confidence,
+    reel_type_evidence,
+    reel_type_uncertain,
+    type_details,
   };
 }
