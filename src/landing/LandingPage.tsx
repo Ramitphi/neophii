@@ -397,6 +397,11 @@ export function LandingPage({
           <Wordmark />
           <p>{s.footer.tagline}</p>
           <p className="lp-hint">{s.footer.note}</p>
+          <nav className="lp-foot-links" aria-label="Legal">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/data-deletion">Data deletion</a>
+          </nav>
         </div>
       </footer>
     </div>
