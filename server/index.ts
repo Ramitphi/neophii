@@ -55,9 +55,9 @@ export function createApp(overrides?: {
 }
 
 // Start server when run directly
-const isMain =
-  process.argv[1] &&
-  (process.argv[1].endsWith('server/index.ts') || process.argv[1].endsWith('server/index.js'));
+// Normalise Windows backslashes so this also works with `npm run dev` on Windows.
+const entry = (process.argv[1] ?? '').replace(/\\/g, '/');
+const isMain = entry.endsWith('server/index.ts') || entry.endsWith('server/index.js');
 
 if (isMain) {
   const app = createApp();
