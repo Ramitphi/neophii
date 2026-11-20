@@ -2477,3 +2477,235 @@ html.lp-root[data-theme='light'] {
 .lp .ph-sheet .ph-try {
   --acc: #ff4fa3;
 }
+
+/* ---------- Feel-good hero and closing: warm glow, drifting colour orbs, save stickers ---------- */
+.lp-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 0) 0 0 / 22px 22px,
+    radial-gradient(120% 90% at 50% 120%, color-mix(in srgb, #ff8a3d 18%, transparent), transparent 60%),
+    var(--paper);
+}
+.lp-orb {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.5;
+  animation: lp-drift 22s ease-in-out infinite alternate;
+}
+.lp-orb-pink { left: -12vmax; top: -14vmax; background: #ff4fa3; }
+.lp-orb-orange { right: -14vmax; top: 6vmax; background: #ff8a3d; animation-duration: 26s; animation-delay: -6s; }
+.lp-orb-violet { left: 18vmax; bottom: -22vmax; background: #6c47ff; opacity: 0.42; animation-duration: 30s; animation-delay: -12s; }
+.lp-orb-lime { right: 10vmax; bottom: -18vmax; width: 28vmax; height: 28vmax; background: #c6f432; opacity: 0.22; animation-duration: 24s; animation-delay: -3s; }
+[data-theme='light'] .lp-orb { opacity: 0.3; }
+[data-theme='light'] .lp-orb-lime { opacity: 0.18; }
+@keyframes lp-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4vmax, 3vmax) scale(1.08); }
+  100% { transform: translate(-3vmax, 5vmax) scale(0.96); }
+}
+
+.lp-hero {
+  isolation: isolate;
+}
+.lp-hero-grid {
+  display: grid;
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+@media (min-width: 980px) {
+  .lp-hero-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+}
+.lp-hero-grid .lp-hero-words {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.lp-hero-grid .lp-line-small {
+  color: var(--ink-soft);
+}
+.lp-hero-grid .lp-line-big {
+  font-size: clamp(44px, 8vw, 112px);
+}
+@media (min-width: 980px) {
+  .lp-hero-grid .lp-line-big { font-size: clamp(56px, 6vw, 96px); }
+  .lp-hero-grid .lp-line-accent { font-size: clamp(48px, 5.2vw, 84px) !important; }
+}
+.lp-hero-grid .lp-line-big {
+  color: var(--ink);
+}
+.lp-hero-grid .lp-line-accent {
+  font-size: clamp(38px, 6.8vw, 96px);
+  background: linear-gradient(90deg, #ff4fa3, #ff8a3d 55%, #ffd23f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme='light'] .lp-hero-grid .lp-line-accent {
+  background: linear-gradient(90deg, #d4246f, #e8551a 60%, #c98a00);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.lp-hero .lp-btn-ghost {
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* save stickers */
+.lp-hero-stickers {
+  position: relative;
+  height: clamp(320px, 42vw, 440px);
+  min-width: 0;
+}
+.lp-sticker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(290px, 82%);
+  padding: 12px 16px 12px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 5px 5px 0 var(--acc);
+  animation: lp-float 7s ease-in-out infinite;
+}
+.lp-pop-pink { --acc: #ff4fa3; --acc-ink: #1a0b14; }
+.lp-pop-lime { --acc: #c6f432; --acc-ink: #132000; }
+.lp-pop-tangerine { --acc: #ff8a3d; --acc-ink: #1f0c00; }
+.lp-sticker-1 { top: 2%; left: 0; rotate: -5deg; }
+.lp-sticker-2 { top: 34%; right: 0; rotate: 4deg; animation-delay: -2.3s; }
+.lp-sticker-3 { top: 66%; left: 8%; rotate: -2deg; animation-delay: -4.6s; }
+@keyframes lp-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
+}
+.lp-sticker-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 2px 2px, rgb(255 255 255 / 0.35) 1.4px, transparent 0) 0 0 / 10px 10px,
+    var(--acc);
+  color: var(--acc-ink);
+}
+.lp-sticker-kind {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 0 7px;
+  border: 1.5px solid #17130e;
+  border-radius: 999px;
+  background: #fffaf0;
+  color: #17130e;
+  font: 700 0.62rem/1.6 var(--ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lp-sticker-body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.lp-sticker-body b {
+  font: 700 0.98rem/1.2 var(--ui);
+  color: var(--ink);
+}
+.lp-sticker-label {
+  font: 700 0.62rem/1.4 var(--ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.lp-sticker-note-line {
+  min-width: 0;
+}
+/* inline, so the highlighter stroke follows every wrapped line */
+.lp-sticker-note {
+  display: inline;
+  padding: 0 3px;
+  margin-left: -3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  font: italic 500 1.08rem/1.3 var(--display);
+  color: var(--ink);
+  background: linear-gradient(transparent 68%, color-mix(in srgb, var(--acc) 70%, transparent) 68%);
+  overflow-wrap: anywhere;
+}
+.lp-sticker-back {
+  position: absolute;
+  top: calc(34% - 18px);
+  right: 4%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 2px solid #17130e;
+  border-radius: 999px;
+  background: #c6f432;
+  color: #132000;
+  font: 700 0.78rem/1.4 var(--ui);
+  box-shadow: 3px 3px 0 #17130e;
+  rotate: 4deg;
+  animation: lp-float 7s ease-in-out infinite;
+  animation-delay: -2.3s;
+}
+.lp-sticker-spark {
+  position: absolute;
+  top: 0;
+  right: 8%;
+  color: #ffd23f;
+  animation: lp-twinkle 3.2s ease-in-out infinite;
+}
+@keyframes lp-twinkle {
+  0%, 100% { opacity: 0.5; scale: 0.9; rotate: 0deg; }
+  50% { opacity: 1; scale: 1.15; rotate: 18deg; }
+}
+@media (max-width: 979px) {
+  .lp-hero-stickers {
+    max-width: 460px;
+    width: 100%;
+    justify-self: center;
+  }
+}
+@media (max-width: 560px) {
+  .lp-hero-stickers {
+    height: 330px;
+  }
+  .lp-sticker {
+    width: min(250px, 86%);
+    padding: 10px 12px 10px 10px;
+  }
+  .lp-sticker-art {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* closing panel: same warm glow, readable ink */
+.lp-closing {
+  isolation: isolate;
+}
+.lp-closing .lp-h2 {
+  color: var(--ink);
+}
+.lp-closing .lp-btn-ghost {
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border-color: var(--ink);
+  color: var(--ink);
+}
