@@ -1,0 +1,47 @@
+# Cloud Build config used by scripts/deploy/20-build.sh. Builds the Dockerfile with the four public Firebase
+# web values as build arguments and pushes the image to Artifact Registry.
+# Substitutions (all required): _IMAGE, _VITE_FIREBASE_API_KEY, _VITE_FIREBASE_AUTH_DOMAIN,
+# _VITE_FIREBASE_PROJECT_ID, _VITE_FIREBASE_APP_ID. None of them is a secret.
+steps:
+  - id: require-firebase-web-config
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    env:
+      - 'K1=${_VITE_FIREBASE_API_KEY}'
+      - 'K2=${_VITE_FIREBASE_AUTH_DOMAIN}'
+      - 'K3=${_VITE_FIREBASE_PROJECT_ID}'
+      - 'K4=${_VITE_FIREBASE_APP_ID}'
+    args:
+      - -c
+      - |
+        for k in K1 K2 K3 K4; do
+          if [ -z "$${!k}" ]; then echo "A VITE_FIREBASE_* build value is empty; check .env.production"; exit 1; fi
+        done
+        echo "Firebase web config present (4 values)"
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - 'VITE_FIREBASE_API_KEY=${_VITE_FIREBASE_API_KEY}'
+      - --build-arg
+      - 'VITE_FIREBASE_AUTH_DOMAIN=${_VITE_FIREBASE_AUTH_DOMAIN}'
+      - --build-arg
+      - 'VITE_FIREBASE_PROJECT_ID=${_VITE_FIREBASE_PROJECT_ID}'
+      - --build-arg
+      - 'VITE_FIREBASE_APP_ID=${_VITE_FIREBASE_APP_ID}'
+      - -t
+      - '${_IMAGE}'
+      - .
+images:
+  - '${_IMAGE}'
+timeout: 1200s
+options:
+  # Logs go to Cloud Logging only, so no logs bucket permission is needed for the build identity.
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _IMAGE: ''
+  _VITE_FIREBASE_API_KEY: ''
+  _VITE_FIREBASE_AUTH_DOMAIN: ''
+  _VITE_FIREBASE_PROJECT_ID: ''
+  _VITE_FIREBASE_APP_ID: ''
