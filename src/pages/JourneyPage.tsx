@@ -33,6 +33,7 @@ export function JourneyPage({
   onOpenLibrary,
   libraryLabel,
   saveLabel,
+  loading = false,
 }: {
   memories: Memory[];
   categories: Category[];
@@ -43,6 +44,8 @@ export function JourneyPage({
   onOpenLibrary: () => void;
   libraryLabel: string;
   saveLabel: string;
+  /** The library has not finished loading: say so instead of showing the empty state. */
+  loading?: boolean;
 }) {
   const J = FEED_STRINGS[lang].journey;
   const locale = LOCALE[lang];
@@ -132,6 +135,14 @@ export function JourneyPage({
       </li>
     );
   };
+
+  if (memories.length === 0 && loading) {
+    return (
+      <p className="muted" role="status" style={{ marginTop: 24 }}>
+        {J.loading}
+      </p>
+    );
+  }
 
   if (memories.length === 0) {
     return (

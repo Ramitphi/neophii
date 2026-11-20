@@ -54,6 +54,7 @@ export interface JourneyStrings {
   newBadge: string;
   newCount: (n: number) => string;
   latest: string;
+  loading: string;
   emptyTitle: string;
   emptyBody: string;
   noMatch: string;
@@ -189,6 +190,7 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       newBadge: 'New',
       newCount: (n) => `${n} new`,
       latest: 'Latest',
+      loading: 'Growing your journey…',
       emptyTitle: 'Your journey starts with one save',
       emptyBody: 'Save a Reel, a link or a screenshot with a few words about why. Your first branch grows right here.',
       noMatch: 'Nothing on your journey matches that.',
@@ -284,6 +286,7 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       newBadge: 'Naya',
       newCount: (n) => `${n} naye`,
       latest: 'Sabse naya',
+      loading: 'Journey ugi ja rahi hai…',
       emptyTitle: 'Journey ek save se shuru hoti hai',
       emptyBody: 'Reel, link ya screenshot do shabdon ke saath save karo ki kyun. Pehli branch yahin ugegi.',
       noMatch: 'Journey mein aisa kuch nahi mila.',
@@ -379,6 +382,7 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       newBadge: 'नया',
       newCount: (n) => `${n} नए`,
       latest: 'सबसे नया',
+      loading: 'आपकी यात्रा उग रही है…',
       emptyTitle: 'यात्रा एक सेव से शुरू होती है',
       emptyBody: 'रील, लिंक या स्क्रीनशॉट कुछ शब्दों के साथ सेव करें कि क्यों। पहली शाखा यहीं उगेगी।',
       noMatch: 'यात्रा में ऐसा कुछ नहीं मिला।',
