@@ -2,6 +2,50 @@
    deep teal secondary, Fraunces display. Everything is scoped under .lp so the app's styles are untouched. */
 
 .lp {
+  --paper: #1c1815;
+  --paper-deep: #13100e;
+  --card: #241f1a;
+  --ink: #f5efe2;
+  --ink-soft: #d7cebe;
+  --muted: #a69c8b;
+  --line: #3c342c;
+  --line-strong: #5b4f43;
+  --vermilion: #ff8a3d;
+  --vermilion-vivid: #ff6b2b;
+  --vermilion-wash: #3a2214;
+  --on-vermilion: #1c0f06;
+  --teal: #6fd0c7;
+  --teal-wash: #16302e;
+  --on-teal: #06211f;
+  --violet: #6c47ff;
+  --pink: #ff4fa3;
+  --grad-pop: linear-gradient(135deg, #6c47ff 0%, #ff4fa3 100%);
+  --shadow: 0 2px 0 rgb(0 0 0 / 0.35), 0 12px 28px -14px rgb(0 0 0 / 0.85);
+  --shadow-lift: 0 4px 0 rgb(0 0 0 / 0.4), 0 24px 48px -18px rgb(0 0 0 / 0.9);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .9 0 0 0 0 .82 0 0 0 .25 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+  --display: 'Fraunces', 'Noto Sans Devanagari', Georgia, serif;
+  --ui: 'Inter', 'Noto Sans Devanagari', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --r-s: 4px;
+  --r-m: 10px;
+  --r-l: 16px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --gutter: clamp(16px, 4.4vw, 56px);
+  --wrap: 1180px;
+  --head-h: 64px;
+
+  /* tame the app's global button hover inside the landing page */
+  --surface-muted: transparent;
+  --focus: var(--violet);
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  line-height: 1.6;
+  overflow-x: clip;
+}
+
+[data-theme='light'] .lp {
   --paper: #f4ecdc;
   --paper-deep: #eadfc8;
   --card: #fffaf0;
@@ -19,56 +63,15 @@
   --on-teal: #f1f7f3;
   --shadow: 0 1px 0 rgb(23 19 14 / 0.04), 0 10px 24px -14px rgb(23 19 14 / 0.35);
   --shadow-lift: 0 2px 0 rgb(23 19 14 / 0.05), 0 22px 40px -20px rgb(23 19 14 / 0.45);
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .09 0 0 0 0 .07 0 0 0 0 .05 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
-  --display: 'Fraunces', 'Noto Sans Devanagari', Georgia, serif;
-  --ui: 'Inter', 'Noto Sans Devanagari', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  --r-s: 4px;
-  --r-m: 8px;
-  --r-l: 14px;
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --gutter: clamp(16px, 4.4vw, 56px);
-  --wrap: 1180px;
-  --head-h: 64px;
-
-  /* tame the app's global button hover inside the landing page */
-  --surface-muted: transparent;
-  --focus: var(--teal);
-
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--ui);
-  line-height: 1.6;
-  overflow-x: clip;
-}
-
-[data-theme='dark'] .lp {
-  --paper: #16130f;
-  --paper-deep: #100e0b;
-  --card: #211c16;
-  --ink: #f3ead9;
-  --ink-soft: #d9cfbb;
-  --muted: #a99f8d;
-  --line: #3a332a;
-  --line-strong: #5a5042;
-  --vermilion: #ff8466;
-  --vermilion-vivid: #ff6a47;
-  --vermilion-wash: #3a2019;
-  --on-vermilion: #1b0d08;
-  --teal: #6fd0c7;
-  --teal-wash: #16302e;
-  --on-teal: #06211f;
-  --shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 12px 26px -14px rgb(0 0 0 / 0.8);
-  --shadow-lift: 0 2px 0 rgb(0 0 0 / 0.3), 0 24px 44px -20px rgb(0 0 0 / 0.9);
 }
 
 html.lp-root {
   scroll-snap-type: y proximity;
   scroll-padding-top: var(--head-h, 64px);
-  background: #f4ecdc;
+  background: #1c1815;
 }
-html.lp-root[data-theme='dark'] {
-  background: #16130f;
+html.lp-root[data-theme='light'] {
+  background: #f4ecdc;
 }
 
 /* ---------- Base elements inside the landing ---------- */
@@ -188,41 +191,52 @@ html.lp-root[data-theme='dark'] {
   gap: 8px;
   min-height: 48px;
   padding: 10px 20px;
-  border: 1.5px solid var(--ink);
-  border-radius: var(--r-m);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
   background: transparent;
   color: var(--ink);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, transform 0.2s var(--ease);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
 .lp .lp-btn:hover:not(:disabled) {
   background: var(--ink);
+  border-color: var(--ink);
   color: var(--paper);
 }
 .lp .lp-btn:active {
   transform: translateY(1px);
 }
 .lp .lp-btn-primary {
-  background: var(--vermilion);
-  border-color: var(--vermilion);
-  color: var(--on-vermilion);
+  background: var(--grad-pop, linear-gradient(135deg, #6c47ff, #ff4fa3));
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 12px 28px -10px rgb(108 71 255 / 0.65);
 }
 .lp .lp-btn-primary:hover:not(:disabled) {
-  background: var(--vermilion-vivid);
-  border-color: var(--vermilion-vivid);
-  color: var(--on-vermilion);
+  background: linear-gradient(135deg, #7a58ff, #ff63ae);
+  border-color: transparent;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px -10px rgb(255 79 163 / 0.6);
 }
 .lp .lp-btn-ghost {
-  background: rgb(255 255 255 / 0.08);
-  border-color: rgb(255 255 255 / 0.55);
+  background: rgb(255 255 255 / 0.06);
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 .lp .lp-btn-small {
   min-height: 40px;
-  padding: 6px 14px;
+  padding: 6px 16px;
   font-size: 0.92rem;
+  border-color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 20%, transparent);
+}
+.lp .lp-btn-small:hover:not(:disabled) {
+  background: var(--violet);
+  border-color: var(--violet);
+  color: #ffffff;
 }
 .lp .lp-icon-btn {
   display: inline-grid;
@@ -251,14 +265,14 @@ html.lp-root[data-theme='dark'] {
   height: 0.3em;
   margin-left: 0.08em;
   border-radius: 50%;
-  background: var(--vermilion-vivid);
+  background: linear-gradient(135deg, #ff4fa3, #ff8a3d);
 }
 .lp-head {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 50;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--paper) 84%, transparent);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
 .lp-head-in {
@@ -310,8 +324,8 @@ html.lp-root[data-theme='dark'] {
   cursor: pointer;
 }
 .lp .lp-lang button.is-on {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--violet);
+  color: #ffffff;
 }
 .lp-nav-toggle {
   display: none !important;
@@ -534,12 +548,12 @@ html.lp-root[data-theme='dark'] {
   position: relative;
   container-type: inline-size;
   aspect-ratio: 10 / 8;
-  border-radius: var(--r-l);
+  border-radius: 22px;
   background:
-    linear-gradient(color-mix(in srgb, var(--paper-deep) 86%, transparent), color-mix(in srgb, var(--paper-deep) 86%, transparent)),
-    var(--grain);
-  border: 1px solid var(--line);
-  box-shadow: inset 0 2px 14px rgb(23 19 14 / 0.07);
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 14%, transparent) 1px, transparent 0) 0 0 / 16px 16px,
+    color-mix(in srgb, var(--paper-deep) 88%, transparent);
+  border: 2px solid var(--line-strong);
+  box-shadow: 0 20px 44px -22px rgb(0 0 0 / 0.85), inset 0 2px 14px rgb(0 0 0 / 0.25);
 }
 .lp-desk.is-narrow {
   aspect-ratio: 1 / 2;
@@ -1404,31 +1418,32 @@ html.lp-root[data-theme='dark'] {
   min-height: 80px;
 }
 .lp-chipbtn {
-  padding: 4px 12px;
-  border: 1px solid var(--line-strong);
+  padding: 5px 13px;
+  border: 1.5px solid var(--line-strong);
   border-radius: 999px;
   background: var(--card);
   font-size: 0.86rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 .lp-chipbtn.is-on {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--vermilion);
+  color: var(--on-vermilion);
   border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 .lp-steps-note {
   flex-basis: 100%;
   width: fit-content;
   flex-grow: 0;
-  padding-bottom: 2px;
-  font: italic 500 1.15rem/1.2 var(--display);
-  border-bottom: 1.5px solid var(--vermilion);
+  padding: 0 4px;
+  margin-left: -4px;
+  font: italic 500 1.15rem/1.25 var(--display);
+  background: linear-gradient(transparent 55%, color-mix(in srgb, var(--vermilion) 65%, transparent) 55%, color-mix(in srgb, var(--vermilion) 65%, transparent) 92%, transparent 92%);
 }
 .lp-steps-tab {
-  padding: 5px 12px 6px;
-  border: 1px solid var(--line-strong);
-  border-bottom: 2px solid var(--ink);
-  border-radius: 6px 6px 0 0;
+  padding: 6px 14px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
   background: var(--card);
   font: 620 0.9rem/1.2 var(--display);
 }
@@ -2010,15 +2025,15 @@ html.lp-root[data-theme='dark'] {
   margin-right: 4px;
 }
 
-/* ---------- Trust band: a vermilion field over the evening loop ---------- */
+/* ---------- Trust band: deep espresso & ember over the evening loop ---------- */
 .lp-trust {
-  color: var(--on-vermilion);
+  color: var(--ink);
 }
 .lp-trust .lp-shade {
-  background: color-mix(in srgb, var(--vermilion) 90%, transparent);
+  background: linear-gradient(135deg, rgb(28 20 16 / 0.88), rgb(34 20 38 / 0.86));
 }
 .lp-trust :focus-visible {
-  outline-color: var(--on-vermilion);
+  outline-color: var(--vermilion);
 }
 .lp-trust-in {
   display: grid;
@@ -2036,20 +2051,23 @@ html.lp-root[data-theme='dark'] {
 }
 .lp-trust-in > div p {
   font-size: 1.1rem;
+  color: var(--ink-soft);
   max-width: 30em;
 }
 .lp-trust-rules li {
   padding: 18px 0;
-  border-top: 1px solid color-mix(in srgb, var(--on-vermilion) 45%, transparent);
+  border-top: 1px solid var(--line-strong);
   font-size: 1.05rem;
   line-height: 1.45;
+  color: var(--ink-soft);
 }
 .lp-trust-rules li:last-child {
-  border-bottom: 1px solid color-mix(in srgb, var(--on-vermilion) 45%, transparent);
+  border-bottom: 1px solid var(--line-strong);
 }
 .lp-trust-rules b {
   display: block;
   margin-bottom: 4px;
+  color: var(--vermilion);
   font: 560 clamp(1.3rem, 2.4vw, 1.75rem)/1.15 var(--display);
   letter-spacing: -0.015em;
 }
@@ -2178,18 +2196,18 @@ html.lp-root[data-theme='dark'] {
    (set inline), with ink outlines and offset "sticker" shadows. Violet marks the frame and AI lines. */
 .lp {
   --violet: #6c47ff;
-  --violet-soft: color-mix(in srgb, #6c47ff 12%, var(--card));
-  --ai-text: #5a35f0;
-}
-[data-theme='dark'] .lp {
   --violet-soft: color-mix(in srgb, #6c47ff 22%, var(--card));
   --ai-text: #b3a2ff;
+}
+[data-theme='light'] .lp {
+  --violet-soft: color-mix(in srgb, #6c47ff 12%, var(--card));
+  --ai-text: #5a35f0;
 }
 
 /* frame: a violet-to-pink bezel on a dotted ground */
 .lp .ph-frame {
   background: linear-gradient(160deg, #6c47ff, #ff4fa3);
-  box-shadow: 0 24px 60px -24px rgb(108 71 255 / 0.7);
+  box-shadow: 0 24px 64px -16px rgb(108 71 255 / 0.75), 0 0 40px -12px rgb(255 79 163 / 0.45);
 }
 .ph-app {
   background:
@@ -2225,8 +2243,8 @@ html.lp-root[data-theme='dark'] {
   border-color: var(--line-strong);
 }
 .lp .ph-tabs button.is-on {
-  background: var(--acc);
-  color: var(--acc-ink);
+  background: var(--acc, #6c47ff);
+  color: var(--acc-ink, #ffffff);
   border-color: var(--ink);
   box-shadow: 2px 2px 0 var(--ink);
 }
