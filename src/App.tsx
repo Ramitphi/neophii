@@ -10,6 +10,7 @@ import { SearchModal } from './components/SearchModal';
 import { api, type InstagramLinkStatus } from './lib/api';
 import { isInstagramInAppBrowser } from './lib/firebase';
 import { STRINGS } from './lib/i18n';
+import { JourneyPage } from './pages/JourneyPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { ProjectsPage } from './pages/ProjectsPage';
@@ -23,7 +24,7 @@ import type {
   TodayResponse,
 } from './types/neophi';
 
-type Tab = 'feed' | 'today' | 'library' | 'projects' | 'settings';
+type Tab = 'feed' | 'today' | 'journey' | 'library' | 'projects' | 'settings';
 
 const ENTERED_KEY = 'neophi_entered';
 
@@ -404,6 +405,21 @@ export function App() {
         onPatch={patchMemory}
         t={t}
       />
+    );
+  } else if (tab === 'journey') {
+    page = (
+      <div className="ph-page">
+        <JourneyPage
+          memories={memories}
+          categories={categories}
+          lang={lang}
+          onOpenMemory={openMemory}
+          onOpenCapture={() => openCapture(false)}
+          onOpenLibrary={() => navigate('library')}
+          libraryLabel={t.navLibrary}
+          saveLabel={t.day0SaveNow}
+        />
+      </div>
     );
   } else if (tab === 'library') {
     page = (

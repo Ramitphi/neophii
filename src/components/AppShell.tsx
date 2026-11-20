@@ -1,13 +1,13 @@
 // One app frame for every tab after "Open Neophi": the same top bar (logo, search, theme, settings), the same
-// labelled bottom nav (Feed, Today, + Save, Library, Projects), one phone-width column on every screen size,
+// labelled bottom nav (Feed, Today, + Save, Journey, Projects), one phone-width column on every screen size,
 // and one toast. Pages render only their content inside it.
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { FolderKanban, Home, Library, Moon, Plus, Search, Settings, Sun } from 'lucide-react';
+import { FolderKanban, GitBranch, Home, Moon, Plus, Search, Settings, Sun } from 'lucide-react';
 import type { StringsTable } from '../lib/i18n';
 import { FEED_STRINGS } from '../pages/feedStrings';
 import type { LanguageCode } from '../types/neophi';
 
-export type ShellTab = 'feed' | 'today' | 'library' | 'projects' | 'settings';
+export type ShellTab = 'feed' | 'today' | 'journey' | 'library' | 'projects' | 'settings';
 
 export interface ShellToast {
   text: string;
@@ -79,7 +79,7 @@ export function AppShell({
     { id: 'feed', label: F.feed, Icon: Home },
     { id: 'today', label: t.navToday, Icon: Sun },
     { id: 'save', label: t.saveButton, Icon: Plus },
-    { id: 'library', label: t.navLibrary, Icon: Library },
+    { id: 'journey', label: F.journey.nav, Icon: GitBranch },
     { id: 'projects', label: t.navProjects, Icon: FolderKanban },
   ];
 
