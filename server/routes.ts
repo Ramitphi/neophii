@@ -11,6 +11,7 @@ import type {
   Project,
   ProjectOutcome,
 } from '../src/types/neophi.js';
+import { suggestCategoryForMemory } from './analysis.js';
 import { config } from './config.js';
 import { createAuthMiddleware, getUid, type AuthVerifier } from './firebase.js';
 import { buildEmbeddingText, type GeminiService } from './gemini.js';
@@ -78,6 +79,7 @@ export interface ApiDeps {
   storage: MediaStorage;
   gemini: GeminiService;
   authVerifier?: AuthVerifier;
+  instagramWebhookConfigured?: boolean;
 }
 
 export function createApiRouter(deps: ApiDeps): express.Router {
@@ -100,6 +102,7 @@ export function createApiRouter(deps: ApiDeps): express.Router {
       },
       project: config.project || 'local-dev',
       region: config.region,
+      instagram: { webhookConfigured: Boolean(deps.instagramWebhookConfigured) },
     });
   });
 
@@ -247,33 +250,12 @@ export function createApiRouter(deps: ApiDeps): express.Router {
             };
 
             // Suggest category if available
-            const existingCats = await deps.store.listCategories(uid);
-            const catSuggestion = await deps.gemini.suggestCategory(updatedMemory, existingCats);
+            const catSuggestion = await suggestCategoryForMemory(deps.store, deps.gemini, uid, updatedMemory);
             if (catSuggestion) {
-              let cat = existingCats.find(
-                (c) => c.name.toLowerCase() === catSuggestion.categoryName.toLowerCase()
-              );
-              if (!cat) {
-                cat = {
-                  id: crypto.randomUUID(),
-                  name: catSuggestion.categoryName,
-                  createdAt: new Date().toISOString(),
-                };
-                await deps.store.saveCategory(uid, cat);
-              }
-              patch.categoryId = cat.id;
-              patch.categoryWhy = catSuggestion.why;
+              patch.categoryId = catSuggestion.categoryId;
+              patch.categoryWhy = catSuggestion.categoryWhy;
               patch.categoryByAI = true;
-              patch.ledger = [
-                ...memory.ledger,
-                {
-                  at: new Date().toISOString(),
-                  who: 'ai',
-                  text: `Filed under ${cat.name}`,
-                  undoable: true,
-                  undoAction: { field: 'categoryId', previousValue: null },
-                },
-              ];
+              patch.ledger = [...memory.ledger, catSuggestion.ledger];
             }
 
             const embedText = buildEmbeddingText(updatedMemory);
@@ -375,7 +357,15 @@ export function createApiRouter(deps: ApiDeps): express.Router {
     }
 
     let newEmbedding: number[] | null | undefined = undefined;
-    if (noteChanged && !existing.privateNoAI) {
+    if (typeof req.body?.privateNoAI === 'boolean' && req.body.privateNoAI !== existing.privateNoAI) {
+      patch.privateNoAI = req.body.privateNoAI;
+      if (req.body.privateNoAI) {
+        // Private from now on: drop the vector and stop any queued analysis from landing.
+        patch.analysisStatus = 'skipped';
+        newEmbedding = null;
+      }
+    }
+    if (noteChanged && !existing.privateNoAI && patch.privateNoAI !== true) {
       const merged: Memory = { ...existing, ...patch };
       newEmbedding = await deps.gemini.embedText(buildEmbeddingText(merged)).catch(() => null);
     }
@@ -390,6 +380,10 @@ export function createApiRouter(deps: ApiDeps): express.Router {
     if (!existing) {
       res.status(404).json({ error: 'Not found' });
       return;
+    }
+    // Tombstone a DM share first so a queued or retried job cannot recreate or re-analyse it.
+    if (existing.dm) {
+      await deps.store.markInstagramShareDeleted(uid, existing.id);
     }
     if (existing.media) {
       await deps.storage.deleteMedia(existing.media.gcsPath, existing.media.thumbPath);

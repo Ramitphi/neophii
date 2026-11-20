@@ -4,7 +4,7 @@ import type {
   SearchResponse,
   SearchResultItem,
 } from '../src/types/neophi.js';
-import type { GeminiService } from './gemini.js';
+import { laterDmNotes, type GeminiService } from './gemini.js';
 import type { NeophiStore } from './store.js';
 
 function formatSeconds(sec: number): string {
@@ -90,13 +90,22 @@ export async function searchMemories(
   for (const memory of allMemories) {
     if (!matchesTimeHint(memory.createdAt, understoodAs.timeHint, now)) continue;
 
-    const noteLower = (memory.note || '').toLowerCase();
+    const ownWords = [memory.note, ...laterDmNotes(memory)].filter((n): n is string => Boolean(n));
     const captionLower = (memory.caption || '').toLowerCase();
     const titleLower = (memory.title || '').toLowerCase();
     const observations = memory.analysis?.observed_objects ?? [];
     const summaryLower = (memory.analysis?.source_summary || '').toLowerCase();
 
-    const matchedNoteTerm = terms.find((t) => noteLower.includes(t));
+    let matchedNote: string | null = null;
+    let matchedNoteTerm: string | undefined;
+    for (const words of ownWords) {
+      const lower = words.toLowerCase();
+      matchedNoteTerm = terms.find((t) => lower.includes(t));
+      if (matchedNoteTerm) {
+        matchedNote = words;
+        break;
+      }
+    }
     const matchedCaptionTerm = terms.find((t) => captionLower.includes(t));
     const matchedTitleTerm = terms.find((t) => titleLower.includes(t));
     const matchedObs = observations.find((o) =>
@@ -115,10 +124,10 @@ export async function searchMemories(
     let noteMatch = false;
     let score = vecScore;
 
-    if (matchedNoteTerm && memory.note) {
+    if (matchedNoteTerm && matchedNote) {
       noteMatch = true;
       score += 2.0;
-      const snippet = memory.note.length > 48 ? `${memory.note.slice(0, 48)}…` : memory.note;
+      const snippet = matchedNote.length > 48 ? `${matchedNote.slice(0, 48)}…` : matchedNote;
       whyMatched = `Your words: '${snippet}'`;
     } else if (matchedCaptionTerm) {
       score += 1.0;

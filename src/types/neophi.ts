@@ -118,6 +118,55 @@ export interface LedgerEntry {
   };
 }
 
+/**
+ * Outcome of trying the Meta-provided attachment route for an Instagram DM share.
+ * Status classes only; never a URL.
+ */
+export type DmMediaOutcome =
+  | 'pending'
+  | 'stored'
+  | 'no_link'
+  | 'html'
+  | 'expired'
+  | 'forbidden'
+  | 'too_large'
+  | 'unsupported_type'
+  | 'signature_mismatch'
+  | 'origin_blocked'
+  | 'timeout'
+  | 'error';
+
+/** What the stored analysis was actually based on. */
+export type DmAnalysisBasis = 'media' | 'caption' | 'none';
+
+/** Instagram DM capture facts for a memory that arrived by DM. Optional and backward compatible. */
+export interface MemoryDmSource {
+  channel: 'instagram_dm';
+  /** Meta message ID of the share delivery. */
+  shareMessageId: string;
+  attachmentKind: 'ig_reel' | 'ig_post' | 'other';
+  /** Time Meta reports for the share event (ISO). */
+  capturedAt: string;
+  mediaOutcome: DmMediaOutcome;
+  mediaMime?: string;
+  mediaBytes?: number;
+  /** Set once an analysis is stored: whether the model actually received media. */
+  analysisBasis?: DmAnalysisBasis;
+  /** Bumped whenever the inputs to analysis change; older analysis jobs cannot overwrite newer results. */
+  analysisGeneration: number;
+  /** Delivery ID of the DM note currently held in `memory.note`, if any. */
+  primaryNoteId: string | null;
+}
+
+/** One DM note, kept exactly as sent and keyed by its own delivery ID. */
+export interface DmNote {
+  deliveryId: string;
+  text: string;
+  /** Time Meta reports for the note event (ISO). */
+  sentAt: string;
+  attachedAt: string;
+}
+
 export interface Memory {
   id: string;
   createdAt: string;
@@ -143,6 +192,10 @@ export interface Memory {
   lastOpenedAt: string | null;
   ledger: LedgerEntry[];
   sample: boolean;
+  /** Present only for memories captured from an Instagram DM. */
+  dm?: MemoryDmSource;
+  /** Every DM note for this memory, including the one shown as `note`. Never merged or rewritten. */
+  dmNotes?: DmNote[];
 }
 
 export interface Category {

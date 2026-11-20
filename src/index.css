@@ -553,6 +553,40 @@ select:focus-visible {
   line-height: 1.45;
 }
 
+.feed-words-first {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 4px 0;
+  min-width: 0;
+}
+
+.feed-words-first .feed-note-text,
+.feed-later-notes .feed-note-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.feed-later-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feed-later-notes li {
+  padding: 8px 14px;
+  border-left: 3px dotted var(--user-border);
+  background: var(--user-bg);
+  border-radius: 0 12px 12px 0;
+}
+
+.feed-later-notes .feed-note-text {
+  font-size: 1rem;
+}
+
 .feed-no-note {
   margin: 0;
   font-size: 0.9rem;
@@ -822,4 +856,101 @@ body {
 
 .feed-media-wrap:has(.reel-embed-wrap) .feed-action-rail {
   display: none;
+}
+
+/* The save page: four clearly labelled sections */
+.memory-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.memory-lane-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.memory-lane-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.35rem;
+}
+
+.memory-lane-num {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.memory-lane-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.memory-later-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-later-notes blockquote {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.memory-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.memory-choice-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.memory-choice-btn[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+[data-theme='dark'] .memory-choice-btn[aria-pressed='true'] {
+  color: #0b1413;
+}
+
+.memory-private {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.memory-private input {
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+  accent-color: var(--accent);
 }

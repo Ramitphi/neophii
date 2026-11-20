@@ -1,7 +1,27 @@
 import admin from 'firebase-admin';
 import { FieldValue } from '@google-cloud/firestore';
-import type { Category, Memory, Project } from '../src/types/neophi.js';
+import type { Category, DmNote, Memory, Project } from '../src/types/neophi.js';
 import { ensureFirebaseAdmin } from './firebase.js';
+import {
+  applyAnalysis,
+  buildAnalysisJob,
+  clearedPayload,
+  eventIdForMemory,
+  finalizeShare,
+  leaseJob,
+  noteAttachment,
+  plain,
+  settleJob,
+  shareFinalized,
+  analysisJobId,
+  type InstagramAnalysisPatch,
+  type InstagramCounts,
+  type InstagramEventRecord,
+  type InstagramJob,
+  type JobSettlement,
+  type NoteOutcome,
+  type ShareFinalizeInput,
+} from './instagram/model.js';
 
 export interface StoredMemory extends Memory {
   embedding?: number[] | null;
@@ -36,6 +56,48 @@ export interface NeophiStore {
 
   exportAll(uid: string): Promise<{ memories: Memory[]; categories: Category[]; projects: Project[] }>;
   deleteAllUserData(uid: string): Promise<void>;
+
+  // Instagram DM pipeline. Server-only records; never returned to a browser.
+  /** Durable intake: creates the event and its job atomically, or reports a duplicate delivery. */
+  recordInstagramEvent(event: InstagramEventRecord, job: InstagramJob): Promise<'created' | 'duplicate'>;
+  getInstagramEvent(eventId: string): Promise<InstagramEventRecord | null>;
+  /** Drops the restricted payload (attachment URL, caption, note text) once it has been processed. */
+  clearInstagramEventPayload(eventId: string): Promise<void>;
+  leaseInstagramJobs(nowMs: number, leaseMs: number, limit: number, leaseId: string): Promise<InstagramJob[]>;
+  settleInstagramJob(jobId: string, leaseId: string, settlement: JobSettlement, nowMs: number): Promise<boolean>;
+  /** Most recent share event from this sender to this recipient at or before `atMs`, within `windowMs`. */
+  findPrecedingInstagramShare(
+    recipientId: string,
+    senderId: string,
+    atMs: number,
+    windowMs: number
+  ): Promise<InstagramEventRecord | null>;
+  /** Transactional reservation of exactly one memory per share event. A deleted share is never recreated. */
+  reserveInstagramShare(
+    eventId: string,
+    uid: string,
+    memory: Memory
+  ): Promise<{ state: 'created' | 'existing' | 'deleted'; memory: Memory | null }>;
+  /** Records the media outcome and queues analysis (unless private). `ok` is false if the memory is gone. */
+  finalizeInstagramShare(
+    uid: string,
+    memoryId: string,
+    input: ShareFinalizeInput,
+    nowMs: number
+  ): Promise<{ ok: boolean; alreadyFinal: boolean }>;
+  attachInstagramNote(uid: string, memoryId: string, note: DmNote, nowMs: number): Promise<NoteOutcome | 'gone'>;
+  /** Stores an analysis only if the memory still exists, is not private and is still at `generation`. */
+  applyInstagramAnalysis(
+    uid: string,
+    memoryId: string,
+    generation: number,
+    patch: InstagramAnalysisPatch,
+    embedding: number[] | null,
+    nowMs: number
+  ): Promise<boolean>;
+  /** Tombstones the share behind a DM memory and cancels its analysis job. No-op for other memories. */
+  markInstagramShareDeleted(uid: string, memoryId: string): Promise<void>;
+  instagramCounts(): Promise<InstagramCounts>;
 }
 
 function stripEmbedding(docData: Record<string, unknown>): Memory {
@@ -208,6 +270,7 @@ export class FirestoreStore implements NeophiStore {
   }
 
   async deleteAllUserData(uid: string): Promise<void> {
+    await this.tombstoneAllInstagramShares(uid);
     const collections = [this.memoriesCol(uid), this.categoriesCol(uid), this.projectsCol(uid)];
     for (const col of collections) {
       const snap = await col.get();
@@ -219,6 +282,238 @@ export class FirestoreStore implements NeophiStore {
       await batch.commit();
     }
     await this.db.collection('users').doc(uid).delete().catch(() => {});
+  }
+
+  // ---------- Instagram DM pipeline ----------
+  private igEvents() {
+    return this.db.collection('instagramEvents');
+  }
+
+  private igJobs() {
+    return this.db.collection('instagramJobs');
+  }
+
+  private static toFs<T extends { expireAtMs: number }>(record: T): Record<string, unknown> {
+    // `expireAt` is a real timestamp so a Firestore TTL policy can delete the record.
+    return { ...plain(record), expireAt: new Date(record.expireAtMs) };
+  }
+
+  private static fromFs<T>(data: Record<string, unknown> | undefined): T {
+    const copy = { ...(data ?? {}) };
+    delete copy.expireAt;
+    return copy as T;
+  }
+
+  private memoryPayload(memory: Memory, embedding?: number[] | null): Record<string, unknown> {
+    const payload: Record<string, unknown> = plain(memory) as unknown as Record<string, unknown>;
+    if (embedding !== undefined) {
+      payload.embedding = embedding && embedding.length > 0 ? FieldValue.vector(embedding) : null;
+    }
+    return payload;
+  }
+
+  async recordInstagramEvent(event: InstagramEventRecord, job: InstagramJob): Promise<'created' | 'duplicate'> {
+    return this.db.runTransaction(async (tx) => {
+      const ref = this.igEvents().doc(event.id);
+      const existing = await tx.get(ref);
+      if (existing.exists) return 'duplicate';
+      tx.create(ref, FirestoreStore.toFs(event));
+      tx.set(this.igJobs().doc(job.id), FirestoreStore.toFs(job));
+      return 'created';
+    });
+  }
+
+  async getInstagramEvent(eventId: string): Promise<InstagramEventRecord | null> {
+    const doc = await this.igEvents().doc(eventId).get();
+    return doc.exists ? FirestoreStore.fromFs<InstagramEventRecord>(doc.data()) : null;
+  }
+
+  async clearInstagramEventPayload(eventId: string): Promise<void> {
+    await this.db.runTransaction(async (tx) => {
+      const ref = this.igEvents().doc(eventId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const cleared = clearedPayload(FirestoreStore.fromFs<InstagramEventRecord>(doc.data()));
+      tx.set(ref, FirestoreStore.toFs(cleared));
+    });
+  }
+
+  async leaseInstagramJobs(nowMs: number, leaseMs: number, limit: number, leaseId: string): Promise<InstagramJob[]> {
+    const snap = await this.igJobs()
+      .where('status', 'in', ['queued', 'leased'])
+      .where('nextRunAt', '<=', nowMs)
+      .orderBy('nextRunAt', 'asc')
+      .limit(limit)
+      .get();
+    const leased: InstagramJob[] = [];
+    for (const candidate of snap.docs) {
+      const job = await this.db.runTransaction(async (tx) => {
+        const doc = await tx.get(candidate.ref);
+        if (!doc.exists) return null;
+        const next = leaseJob(FirestoreStore.fromFs<InstagramJob>(doc.data()), nowMs, leaseMs, leaseId);
+        if (next) tx.set(candidate.ref, FirestoreStore.toFs(next));
+        return next;
+      });
+      if (job) leased.push(job);
+    }
+    return leased;
+  }
+
+  async settleInstagramJob(jobId: string, leaseId: string, settlement: JobSettlement, nowMs: number): Promise<boolean> {
+    return this.db.runTransaction(async (tx) => {
+      const ref = this.igJobs().doc(jobId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return false;
+      const next = settleJob(FirestoreStore.fromFs<InstagramJob>(doc.data()), leaseId, settlement, nowMs);
+      if (!next) return false;
+      tx.set(ref, FirestoreStore.toFs(next));
+      return true;
+    });
+  }
+
+  async findPrecedingInstagramShare(
+    recipientId: string,
+    senderId: string,
+    atMs: number,
+    windowMs: number
+  ): Promise<InstagramEventRecord | null> {
+    const snap = await this.igEvents()
+      .where('kind', '==', 'share')
+      .where('recipientId', '==', recipientId)
+      .where('senderId', '==', senderId)
+      .where('timestampMs', '<=', atMs)
+      .where('timestampMs', '>=', atMs - windowMs)
+      .orderBy('timestampMs', 'desc')
+      .limit(1)
+      .get();
+    return snap.empty ? null : FirestoreStore.fromFs<InstagramEventRecord>(snap.docs[0].data());
+  }
+
+  async reserveInstagramShare(eventId: string, uid: string, memory: Memory) {
+    return this.db.runTransaction(async (tx) => {
+      const evRef = this.igEvents().doc(eventId);
+      const memRef = this.memoriesCol(uid).doc(memory.id);
+      const [ev, mem] = await Promise.all([tx.get(evRef), tx.get(memRef)]);
+      if (!ev.exists) throw new Error('instagram event missing');
+      const event = FirestoreStore.fromFs<InstagramEventRecord>(ev.data());
+      if (event.uid !== uid || event.shareState === 'deleted') return { state: 'deleted' as const, memory: null };
+      if (event.shareState === 'active') {
+        return mem.exists
+          ? { state: 'existing' as const, memory: stripEmbedding(mem.data() ?? {}) }
+          : { state: 'deleted' as const, memory: null };
+      }
+      tx.set(memRef, this.memoryPayload(memory, null));
+      tx.set(evRef, FirestoreStore.toFs({ ...event, shareState: 'active', memoryId: memory.id }));
+      return { state: 'created' as const, memory };
+    });
+  }
+
+  async finalizeInstagramShare(uid: string, memoryId: string, input: ShareFinalizeInput, nowMs: number) {
+    return this.db.runTransaction(async (tx) => {
+      const memRef = this.memoriesCol(uid).doc(memoryId);
+      const doc = await tx.get(memRef);
+      if (!doc.exists) return { ok: false, alreadyFinal: false };
+      const raw = doc.data() ?? {};
+      const next = finalizeShare(stripEmbedding(raw), input, new Date(nowMs).toISOString());
+      if (!next) return { ok: true, alreadyFinal: true };
+      tx.set(memRef, { ...this.memoryPayload(next), embedding: raw.embedding ?? null });
+      if (!next.privateNoAI && next.dm) {
+        const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
+        tx.set(this.igJobs().doc(job.id), FirestoreStore.toFs(job));
+      }
+      return { ok: true, alreadyFinal: false };
+    });
+  }
+
+  async attachInstagramNote(uid: string, memoryId: string, note: DmNote, nowMs: number) {
+    return this.db.runTransaction(async (tx) => {
+      const memRef = this.memoriesCol(uid).doc(memoryId);
+      const doc = await tx.get(memRef);
+      if (!doc.exists) return 'gone' as const;
+      const raw = doc.data() ?? {};
+      const { outcome, next } = noteAttachment(stripEmbedding(raw), note, new Date(nowMs).toISOString());
+      if (outcome === 'duplicate') return outcome;
+      const queue = outcome === 'primary' && !next.privateNoAI && shareFinalized(next) && next.dm;
+      const stored = queue ? { ...next, analysisStatus: 'pending' as const } : next;
+      // Keep the existing embedding untouched; the reanalysis replaces it.
+      tx.set(memRef, { ...this.memoryPayload(stored), embedding: raw.embedding ?? null });
+      if (queue && next.dm) {
+        const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
+        tx.set(this.igJobs().doc(job.id), FirestoreStore.toFs(job));
+      }
+      return outcome;
+    });
+  }
+
+  async applyInstagramAnalysis(
+    uid: string,
+    memoryId: string,
+    generation: number,
+    patch: InstagramAnalysisPatch,
+    embedding: number[] | null,
+    nowMs: number
+  ): Promise<boolean> {
+    return this.db.runTransaction(async (tx) => {
+      const memRef = this.memoriesCol(uid).doc(memoryId);
+      const doc = await tx.get(memRef);
+      if (!doc.exists) return false;
+      const next = applyAnalysis(stripEmbedding(doc.data() ?? {}), generation, patch, new Date(nowMs).toISOString());
+      if (!next) return false;
+      tx.set(memRef, this.memoryPayload(next, embedding));
+      return true;
+    });
+  }
+
+  async markInstagramShareDeleted(uid: string, memoryId: string): Promise<void> {
+    const eventId = eventIdForMemory(memoryId);
+    if (!eventId) return;
+    await this.db.runTransaction(async (tx) => {
+      const ref = this.igEvents().doc(eventId);
+      const doc = await tx.get(ref);
+      if (doc.exists) {
+        const event = FirestoreStore.fromFs<InstagramEventRecord>(doc.data());
+        if (event.uid === uid) {
+          tx.set(ref, FirestoreStore.toFs({ ...clearedPayload(event), shareState: 'deleted' }));
+        }
+      }
+      tx.delete(this.igJobs().doc(analysisJobId(memoryId)));
+    });
+  }
+
+  private async tombstoneAllInstagramShares(uid: string): Promise<void> {
+    const [events, jobs] = await Promise.all([
+      this.igEvents().where('uid', '==', uid).get(),
+      this.igJobs().where('uid', '==', uid).get(),
+    ]);
+    const writes: Array<(b: admin.firestore.WriteBatch) => void> = [];
+    for (const doc of events.docs) {
+      const event = FirestoreStore.fromFs<InstagramEventRecord>(doc.data());
+      const next = event.kind === 'share' ? { ...clearedPayload(event), shareState: 'deleted' as const } : clearedPayload(event);
+      writes.push((b) => b.set(doc.ref, FirestoreStore.toFs(next)));
+    }
+    for (const doc of jobs.docs) writes.push((b) => b.delete(doc.ref));
+    for (let i = 0; i < writes.length; i += 400) {
+      const batch = this.db.batch();
+      for (const w of writes.slice(i, i + 400)) w(batch);
+      await batch.commit();
+    }
+  }
+
+  async instagramCounts(): Promise<InstagramCounts> {
+    const count = async (q: admin.firestore.Query) => (await q.count().get()).data().count;
+    const ev = this.igEvents();
+    const jobs = this.igJobs();
+    const [shares, notes, activeShares, deletedShares, queued, leased, done, dead] = await Promise.all([
+      count(ev.where('kind', '==', 'share')),
+      count(ev.where('kind', '==', 'note')),
+      count(ev.where('shareState', '==', 'active')),
+      count(ev.where('shareState', '==', 'deleted')),
+      count(jobs.where('status', '==', 'queued')),
+      count(jobs.where('status', '==', 'leased')),
+      count(jobs.where('status', '==', 'done')),
+      count(jobs.where('status', '==', 'dead')),
+    ]);
+    return { events: { shares, notes, activeShares, deletedShares }, jobs: { queued, leased, done, dead } };
   }
 }
 
@@ -356,7 +651,167 @@ export class InMemoryStore implements NeophiStore {
   }
 
   async deleteAllUserData(uid: string): Promise<void> {
+    for (const [id, event] of this.igEvents) {
+      if (event.uid !== uid) continue;
+      this.igEvents.set(id, event.kind === 'share' ? { ...clearedPayload(event), shareState: 'deleted' } : clearedPayload(event));
+    }
+    for (const [id, job] of this.igJobs) if (job.uid === uid) this.igJobs.delete(id);
     this.users.delete(uid);
+  }
+
+  // ---------- Instagram DM pipeline ----------
+  // Every method below runs without awaiting between its read and its write, so each one is atomic
+  // with respect to concurrent callers in this process (the Firestore store uses transactions).
+  private igEvents = new Map<string, InstagramEventRecord>();
+  private igJobs = new Map<string, InstagramJob>();
+  /** Test hook: number of times each method ran. */
+  readonly calls = { recordInstagramEvent: 0 };
+
+  async recordInstagramEvent(event: InstagramEventRecord, job: InstagramJob): Promise<'created' | 'duplicate'> {
+    this.calls.recordInstagramEvent++;
+    if (this.igEvents.has(event.id)) return 'duplicate';
+    this.igEvents.set(event.id, plain(event));
+    this.igJobs.set(job.id, plain(job));
+    return 'created';
+  }
+
+  async getInstagramEvent(eventId: string): Promise<InstagramEventRecord | null> {
+    const e = this.igEvents.get(eventId);
+    return e ? plain(e) : null;
+  }
+
+  async clearInstagramEventPayload(eventId: string): Promise<void> {
+    const e = this.igEvents.get(eventId);
+    if (e) this.igEvents.set(eventId, clearedPayload(e));
+  }
+
+  async leaseInstagramJobs(nowMs: number, leaseMs: number, limit: number, leaseId: string): Promise<InstagramJob[]> {
+    const runnable = [...this.igJobs.values()]
+      .filter((j) => (j.status === 'queued' || j.status === 'leased') && j.nextRunAt <= nowMs)
+      .sort((a, b) => a.nextRunAt - b.nextRunAt)
+      .slice(0, limit);
+    const out: InstagramJob[] = [];
+    for (const j of runnable) {
+      const next = leaseJob(j, nowMs, leaseMs, leaseId);
+      if (!next) continue;
+      this.igJobs.set(j.id, next);
+      out.push(plain(next));
+    }
+    return out;
+  }
+
+  async settleInstagramJob(jobId: string, leaseId: string, settlement: JobSettlement, nowMs: number): Promise<boolean> {
+    const j = this.igJobs.get(jobId);
+    const next = j ? settleJob(j, leaseId, settlement, nowMs) : null;
+    if (!next) return false;
+    this.igJobs.set(jobId, next);
+    return true;
+  }
+
+  async findPrecedingInstagramShare(recipientId: string, senderId: string, atMs: number, windowMs: number) {
+    let best: InstagramEventRecord | null = null;
+    for (const e of this.igEvents.values()) {
+      if (e.kind !== 'share' || e.recipientId !== recipientId || e.senderId !== senderId) continue;
+      if (e.timestampMs > atMs || e.timestampMs < atMs - windowMs) continue;
+      if (!best || e.timestampMs > best.timestampMs) best = e;
+    }
+    return best ? plain(best) : null;
+  }
+
+  async reserveInstagramShare(eventId: string, uid: string, memory: Memory) {
+    const event = this.igEvents.get(eventId);
+    if (!event) throw new Error('instagram event missing');
+    if (event.uid !== uid || event.shareState === 'deleted') return { state: 'deleted' as const, memory: null };
+    if (event.shareState === 'active') {
+      const existing = this.bucket(uid).memories.get(memory.id);
+      return existing
+        ? { state: 'existing' as const, memory: stripEmbedding(existing as unknown as Record<string, unknown>) }
+        : { state: 'deleted' as const, memory: null };
+    }
+    this.bucket(uid).memories.set(memory.id, { ...plain(memory), embedding: null });
+    this.igEvents.set(eventId, { ...event, shareState: 'active', memoryId: memory.id });
+    return { state: 'created' as const, memory: plain(memory) };
+  }
+
+  async finalizeInstagramShare(uid: string, memoryId: string, input: ShareFinalizeInput, nowMs: number) {
+    const existing = this.bucket(uid).memories.get(memoryId);
+    if (!existing) return { ok: false, alreadyFinal: false };
+    const next = finalizeShare(stripEmbedding(existing as unknown as Record<string, unknown>), input, new Date(nowMs).toISOString());
+    if (!next) return { ok: true, alreadyFinal: true };
+    this.bucket(uid).memories.set(memoryId, { ...plain(next), embedding: existing.embedding ?? null });
+    if (!next.privateNoAI && next.dm) {
+      const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
+      this.igJobs.set(job.id, job);
+    }
+    return { ok: true, alreadyFinal: false };
+  }
+
+  async attachInstagramNote(uid: string, memoryId: string, note: DmNote, nowMs: number) {
+    const existing = this.bucket(uid).memories.get(memoryId);
+    if (!existing) return 'gone' as const;
+    const { outcome, next } = noteAttachment(
+      stripEmbedding(existing as unknown as Record<string, unknown>),
+      note,
+      new Date(nowMs).toISOString()
+    );
+    if (outcome === 'duplicate') return outcome;
+    const queue = outcome === 'primary' && !next.privateNoAI && shareFinalized(next) && next.dm;
+    const stored = queue ? { ...next, analysisStatus: 'pending' as const } : next;
+    this.bucket(uid).memories.set(memoryId, { ...plain(stored), embedding: existing.embedding ?? null });
+    if (queue && next.dm) {
+      const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
+      this.igJobs.set(job.id, job);
+    }
+    return outcome;
+  }
+
+  async applyInstagramAnalysis(
+    uid: string,
+    memoryId: string,
+    generation: number,
+    patch: InstagramAnalysisPatch,
+    embedding: number[] | null,
+    nowMs: number
+  ): Promise<boolean> {
+    const existing = this.bucket(uid).memories.get(memoryId);
+    if (!existing) return false;
+    const next = applyAnalysis(
+      stripEmbedding(existing as unknown as Record<string, unknown>),
+      generation,
+      patch,
+      new Date(nowMs).toISOString()
+    );
+    if (!next) return false;
+    this.bucket(uid).memories.set(memoryId, { ...plain(next), embedding: embedding ? [...embedding] : null });
+    return true;
+  }
+
+  async markInstagramShareDeleted(uid: string, memoryId: string): Promise<void> {
+    const eventId = eventIdForMemory(memoryId);
+    if (!eventId) return;
+    const event = this.igEvents.get(eventId);
+    if (event && event.uid === uid) this.igEvents.set(eventId, { ...clearedPayload(event), shareState: 'deleted' });
+    this.igJobs.delete(analysisJobId(memoryId));
+  }
+
+  async instagramCounts(): Promise<InstagramCounts> {
+    const events = [...this.igEvents.values()];
+    const jobs = [...this.igJobs.values()];
+    const by = (s: InstagramJob['status']) => jobs.filter((j) => j.status === s).length;
+    return {
+      events: {
+        shares: events.filter((e) => e.kind === 'share').length,
+        notes: events.filter((e) => e.kind === 'note').length,
+        activeShares: events.filter((e) => e.shareState === 'active').length,
+        deletedShares: events.filter((e) => e.shareState === 'deleted').length,
+      },
+      jobs: { queued: by('queued'), leased: by('leased'), done: by('done'), dead: by('dead') },
+    };
+  }
+
+  /** Test hook: raw restricted records, to prove payloads are cleared. */
+  debugInstagramRecords(): { events: InstagramEventRecord[]; jobs: InstagramJob[] } {
+    return { events: plain([...this.igEvents.values()]), jobs: plain([...this.igJobs.values()]) };
   }
 }
 
