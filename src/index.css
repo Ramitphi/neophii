@@ -1561,3 +1561,48 @@ body {
   opacity: 0.75;
   vertical-align: middle;
 }
+
+/* Other platforms, coming soon */
+.soon-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.soon-body {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+.soon-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.soon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+.soon-chip em {
+  font-style: normal;
+  font-size: 0.7rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft, rgba(127, 127, 127, 0.12));
+  color: var(--accent, inherit);
+}
+.soon.is-compact {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.soon.is-compact .soon-list {
+  margin-top: 8px;
+}
