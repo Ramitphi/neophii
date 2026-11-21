@@ -3043,3 +3043,42 @@ html.lp-root[data-theme='light'] {
   background: var(--acc, var(--violet));
   color: var(--acc-ink, #fff);
 }
+
+/* Open: the main action, first in the row, filled dark with the card colour as its shadow */
+:is(.lp, .ph-app) .ph-act.is-primary {
+  padding-inline: 18px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  box-shadow: 3px 3px 0 var(--acc, var(--violet));
+}
+:is(.lp, .ph-app) .ph-act.is-primary:hover {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 4px 4px 0 var(--acc, var(--violet));
+}
+
+/* Keep Open, Later, Done and Copy link on one line, even on a narrow phone */
+.ph-actions {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+:is(.lp, .ph-app) .ph-actions .ph-act {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 5px 10px;
+  gap: 5px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+:is(.lp, .ph-app) .ph-actions .ph-act.is-primary {
+  padding-inline: 14px;
+}
+.ph-card {
+  container: ph-card / inline-size;
+}
+@container ph-card (max-width: 330px) {
+  :is(.lp, .ph-app) .ph-actions .ph-act svg {
+    display: none;
+  }
+}

@@ -46,7 +46,7 @@ export function FeedPage({
   const [tab, setTab] = useState<string>('all');
   const [loadingSamples, setLoadingSamples] = useState(false);
   const { categoryOf, popOf } = useCategoryPops(categories);
-  const { act, addNote, copy } = useMemoryActions(lang, onPatch);
+  const { act, copy } = useMemoryActions(lang, onPatch);
 
   const now = Date.now();
   const visible = memories
@@ -147,7 +147,6 @@ export function FeedPage({
             t={t}
             onOpen={open}
             onAct={(mem, a) => void act(mem, a)}
-            onAddNote={addNote}
             onCopy={(u) => void copy(u)}
           />
         ))
