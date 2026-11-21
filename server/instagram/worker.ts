@@ -11,8 +11,11 @@ import type { MediaStorage } from '../storage.js';
 import type { NeophiStore } from '../store.js';
 import type { InstagramConfig } from './config.js';
 import { logEvent } from './log.js';
+import type { Resolved, VideoResolver } from './resolvers.js';
 import { fetchAuthorizedMedia, lookupGraphAttachment, type FetchLike, type MediaFetchResult } from './media.js';
+import { createReplier, REPLY_TEXT, type Replier, type ReplyKind } from './reply.js';
 import {
+  MEDIA_RETRY_DELAYS_MS,
   memoryIdForEvent,
   type InstagramEventRecord,
   type InstagramJob,
@@ -25,6 +28,10 @@ export interface WorkerDeps {
   storage: MediaStorage;
   gemini: GeminiService;
   config: InstagramConfig;
+  /** Fallback video getters for a Reel whose DM carried only a page link. None unless configured. */
+  resolvers?: VideoResolver[];
+  /** Status DMs to the person. Built from the config (off unless switched on) when not given. */
+  replier?: Replier | null;
   fetchImpl?: FetchLike;
   now?: () => number;
 }
@@ -47,6 +54,8 @@ class RetryLater extends Error {
 type JobResult = { outcome: string };
 
 const ORPHAN_NOTE_AFTER_MS = 2 * 60 * 1000;
+/** Outcomes where trying the sources again later could work (a size or type problem never will). */
+const RETRY_OUTCOMES = new Set(['no_link', 'html', 'expired', 'forbidden', 'timeout', 'error']);
 const ORDER: Record<string, number> = { share: 0, note: 1, analyze: 2 };
 
 export function backoffMs(attempts: number): number {
@@ -120,9 +129,17 @@ export function createInstagramWorker(deps: WorkerDeps) {
   const fetchImpl: FetchLike = deps.fetchImpl ?? ((input, init) => fetch(input, init));
   const cfg = deps.config;
 
-  async function fetchMedia(event: InstagramEventRecord): Promise<{ result: MediaFetchResult | null; via: string; permalink: string | null }> {
+  const resolvers = deps.resolvers ?? [];
+  const replier = deps.replier === undefined ? createReplier(cfg, fetchImpl) : deps.replier;
+  const reply = async (recipientId: string | null | undefined, kind: ReplyKind) => {
+    if (replier && recipientId) await replier.send(recipientId, REPLY_TEXT[kind], kind);
+  };
+
+  type MediaSource = { messageId: string; mediaUrl: string | null; permalink: string | null };
+
+  async function fetchMedia(event: MediaSource, allowResolvers: boolean): Promise<{ result: MediaFetchResult | null; via: string; permalink: string | null }> {
     const opts = { fetchImpl, allowedHosts: cfg.mediaHosts, maxBytes: cfg.maxMediaBytes, timeoutMs: cfg.mediaTimeoutMs };
-    const direct = event.share?.mediaUrl ? await fetchAuthorizedMedia(event.share.mediaUrl, opts) : null;
+    const direct = event.mediaUrl ? await fetchAuthorizedMedia(event.mediaUrl, opts) : null;
     if (direct?.ok || (direct && direct.retryable)) return { result: direct, via: 'attachment', permalink: null };
 
     // The webhook attachment gave a web page, an expired link or nothing: try the documented Graph message
@@ -131,6 +148,30 @@ export function createInstagramWorker(deps: WorkerDeps) {
     for (const url of graph.mediaUrls) {
       const viaGraph = await fetchAuthorizedMedia(url, opts);
       if (viaGraph.ok) return { result: viaGraph, via: 'graph', permalink: graph.permalink };
+    }
+    const permalink = event.permalink ?? graph.permalink;
+    // Meta gave no file. Try the other services in order, with the public link only; the first real video wins.
+    if (allowResolvers && permalink) {
+      for (const resolver of resolvers) {
+        let found: Resolved;
+        try {
+          found = await resolver.resolve(permalink, fetchImpl);
+        } catch {
+          logEvent('instagram_video_resolver', { resolver: resolver.name, outcome: 'error' });
+          continue;
+        }
+        const viaResolver = { ...opts, allowedHosts: [...opts.allowedHosts, ...found.hosts] };
+        let got: MediaFetchResult | null = null;
+        for (const url of found.urls.slice(0, 3)) {
+          const r = await fetchAuthorizedMedia(url, viaResolver);
+          if (r.ok) {
+            got = r;
+            break;
+          }
+        }
+        logEvent('instagram_video_resolver', { resolver: resolver.name, outcome: got ? 'video' : found.urls.length ? 'unusable' : 'none' });
+        if (got) return { result: got, via: `resolver_${resolver.name}`, permalink };
+      }
     }
     return { result: direct, via: graph.status === 'ok' ? 'graph_no_media' : 'attachment', permalink: graph.permalink };
   }
@@ -162,10 +203,15 @@ export function createInstagramWorker(deps: WorkerDeps) {
     let input: ShareFinalizeInput;
     let stored: { gcsPath: string; thumbPath: string | null } | null = null;
     let via = 'none';
-    if (!event.share?.mediaUrl && !cfg.accessToken) {
+    // A save with AI off never has its link sent to another service.
+    const canResolve = !memory.privateNoAI && resolvers.length > 0 && Boolean(event.share?.permalink);
+    if (!event.share?.mediaUrl && !cfg.accessToken && !canResolve) {
       input = { media: null, ingest: memory.ingest, mediaOutcome: 'no_link' };
     } else {
-      const fetched = await fetchMedia(event);
+      const fetched = await fetchMedia(
+        { messageId: event.messageId, mediaUrl: event.share?.mediaUrl ?? null, permalink: event.share?.permalink ?? null },
+        canResolve
+      );
       via = fetched.via;
       const r = fetched.result;
       if (r && !r.ok && r.retryable && !final) throw new RetryLater(`media_${r.outcome}`);
@@ -183,11 +229,15 @@ export function createInstagramWorker(deps: WorkerDeps) {
         };
       } else {
         const readable = !event.share?.unsupported && Boolean(memory.caption || memory.url || fetched.permalink);
+        const outcome = r ? r.outcome : 'no_link';
+        // Nothing gave the video now, but something could later: a Reel link plus a source that may work another time.
+        const couldLater = RETRY_OUTCOMES.has(outcome) && !memory.privateNoAI && !event.share?.unsupported && Boolean(memory.url ?? fetched.permalink) && (resolvers.length > 0 || Boolean(cfg.accessToken));
         input = {
           media: null,
           ingest: readable ? 'link_metadata' : 'unsupported',
-          mediaOutcome: r ? r.outcome : 'no_link',
+          mediaOutcome: outcome,
           permalink: fetched.permalink,
+          ...(couldLater ? { retryMedia: true } : {}),
         };
       }
     }
@@ -198,6 +248,7 @@ export function createInstagramWorker(deps: WorkerDeps) {
       await deps.storage.deleteMedia(stored.gcsPath, stored.thumbPath);
     }
     await deps.store.clearInstagramEventPayload(event.id);
+    if (fin.ok && input.retryMedia && !event.share?.simulated) await reply(event.senderId, 'video_missing');
     logEvent('instagram_share_processed', {
       job: job.id.slice(0, 18),
       media: input.mediaOutcome,
@@ -245,6 +296,48 @@ export function createInstagramWorker(deps: WorkerDeps) {
     await deps.store.clearInstagramEventPayload(event.id);
     logEvent('instagram_note_processed', { job: job.id.slice(0, 18), outcome });
     return { outcome: `note_${outcome}` };
+  }
+
+  /** A later try for a Reel whose video no source could give: the sources again, then the reading with the video. */
+  async function handleMediaRetry(job: InstagramJob, final: boolean): Promise<JobResult> {
+    if (!job.memoryId) return { outcome: 'media_missing' };
+    const memory = await deps.store.getMemory(job.uid, job.memoryId);
+    if (!memory || !memory.dm) return { outcome: 'media_gone' };
+    if (memory.privateNoAI) return { outcome: 'media_private' };
+    if (memory.dm.mediaOutcome === 'stored') return { outcome: 'media_already' };
+    const event = job.eventId ? await deps.store.getInstagramEvent(job.eventId) : null;
+    const sender = memory.dm.simulated ? null : event?.senderId ?? null;
+
+    const fetched = await fetchMedia({ messageId: memory.dm.shareMessageId, mediaUrl: null, permalink: memory.url ?? null }, true);
+    const r = fetched.result;
+    if (r?.ok) {
+      const put = await deps.storage.putMedia(job.uid, memory.id, r.buffer, r.mime);
+      const media: MemoryMedia = { kind: put.kind, mime: put.mime, gcsPath: put.gcsPath, thumbPath: put.thumbPath };
+      const ok = await deps.store.attachInstagramMedia(job.uid, memory.id, { media, mediaMime: r.mime, mediaBytes: r.bytes }, now());
+      if (!ok) {
+        await deps.storage.deleteMedia(put.gcsPath, put.thumbPath);
+        return { outcome: 'media_not_applied' };
+      }
+      logEvent('instagram_media_retry', { job: job.id.slice(0, 18), outcome: 'video', via: fetched.via, attempts: job.attempts });
+      await reply(sender, 'video_found');
+      return { outcome: 'media_late_stored' };
+    }
+
+    const max = job.maxAttempts;
+    if (!final) {
+      const delay = MEDIA_RETRY_DELAYS_MS[Math.min(job.attempts, MEDIA_RETRY_DELAYS_MS.length - 1)];
+      await deps.store.setInstagramMediaRetry(
+        job.uid,
+        memory.id,
+        { state: 'waiting', attempt: job.attempts, max, nextAt: new Date(now() + delay).toISOString() },
+        now()
+      );
+      throw new RetryLater('media_not_found', delay);
+    }
+    await deps.store.setInstagramMediaRetry(job.uid, memory.id, { state: 'gave_up', attempt: job.attempts, max }, now());
+    logEvent('instagram_media_retry', { job: job.id.slice(0, 18), outcome: 'gave_up', attempts: job.attempts });
+    await reply(sender, 'video_gave_up');
+    return { outcome: 'media_gave_up' };
   }
 
   async function analyse(memory: Memory, ingest: IngestKind): Promise<MemoryAnalysis | null> {
@@ -322,6 +415,7 @@ export function createInstagramWorker(deps: WorkerDeps) {
 
   async function processJob(job: InstagramJob, final: boolean): Promise<JobResult> {
     if (job.type === 'analyze') return handleAnalysis(job, final);
+    if (job.type === 'media') return handleMediaRetry(job, final);
     if (!job.eventId) return { outcome: 'event_missing' };
     const event = await deps.store.getInstagramEvent(job.eventId);
     if (!event) return { outcome: 'event_missing' };
@@ -341,7 +435,7 @@ export function createInstagramWorker(deps: WorkerDeps) {
     const jobs = await deps.store.leaseInstagramJobs(now(), cfg.leaseMs, limit, leaseId);
     const kinds = new Map<string, string>();
     for (const j of jobs) {
-      if (j.type === 'analyze') kinds.set(j.id, 'analyze');
+      if (j.type === 'analyze' || j.type === 'media') kinds.set(j.id, 'analyze');
       else kinds.set(j.id, (await deps.store.getInstagramEvent(j.eventId ?? ''))?.kind ?? 'share');
     }
     jobs.sort((a, b) => ORDER[kinds.get(a.id) ?? 'share'] - ORDER[kinds.get(b.id) ?? 'share'] || a.createdAtMs - b.createdAtMs);

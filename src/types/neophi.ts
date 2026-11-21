@@ -273,6 +273,17 @@ export interface MemoryDmSource {
   primaryNoteId: string | null;
   /** True when the share came from the "try without Instagram" sender, not from Instagram. Always labelled as such. */
   simulated?: boolean;
+  /** The video could not be fetched by any source yet; it is tried again later. Cleared once the video is in. */
+  mediaRetry?: MediaRetry;
+}
+
+export interface MediaRetry {
+  state: 'waiting' | 'gave_up';
+  /** Tries made so far, and the most that will be made. */
+  attempt: number;
+  max: number;
+  /** When the next try is due (ISO). Only while waiting. */
+  nextAt?: string;
 }
 
 /** One DM note, kept exactly as sent and keyed by its own delivery ID. */

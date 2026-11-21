@@ -39,6 +39,8 @@ export interface InstagramConfig {
   /** Google OIDC audience and caller for the internal worker endpoint (Cloud Scheduler / Cloud Tasks). */
   workerOidcAudience: string;
   workerServiceAccount: string;
+  /** Off by default: send the person a short status DM when a Reel's video could not be fetched, arrived later, or never did. */
+  replies: boolean;
   /** Setup aid, off by default: log the Instagram-scoped ID (only) of a denied sender so it can be paired. */
   logDeniedSenders: boolean;
 }
@@ -100,6 +102,7 @@ export function loadInstagramConfig(env: NodeJS.ProcessEnv = process.env): Insta
     workerSecret: env.INSTAGRAM_WORKER_SECRET ?? '',
     workerOidcAudience: (env.INSTAGRAM_WORKER_OIDC_AUDIENCE ?? '').trim(),
     workerServiceAccount: (env.INSTAGRAM_WORKER_SERVICE_ACCOUNT ?? '').trim().toLowerCase(),
+    replies: env.INSTAGRAM_REPLIES === '1',
     logDeniedSenders: env.INSTAGRAM_LOG_DENIED_SENDERS === '1',
   };
 }

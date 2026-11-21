@@ -46,6 +46,8 @@ export interface StringsTable {
   aiWhatThisIs: string;
   captionSkipped: string;
   linkOnlyMessage: string;
+  videoWaiting: string;
+  videoGaveUp: string;
   unsupportedMessage: string;
   ledgerTitle: string;
   laneSourceEvidence: string;
@@ -126,6 +128,8 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     aiWhatThisIs: 'AI · what this is',
     captionSkipped: 'Caption skipped:',
     linkOnlyMessage: 'I only saw the link and caption',
+    videoWaiting: 'Could not get the video even after trying every source. Trying again in a while; this save will update by itself once the video is in.',
+    videoGaveUp: 'Could not get the video even after trying again. Send the video as a file in the DM, or upload it on the site, and this save will be read with it.',
     unsupportedMessage:
       'I could not read this one. Your link and note are kept; upload your own copy to add more.',
     ledgerTitle: 'Ledger',
@@ -206,6 +210,8 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     aiWhatThisIs: 'AI · yeh kya hai',
     captionSkipped: 'Caption chhoda:',
     linkOnlyMessage: 'Maine sirf link aur caption dekha',
+    videoWaiting: 'Har source try karne ke baad bhi video nahi mila. Thodi der mein phir try karenge; video aate hi ye save apne aap update ho jayega.',
+    videoGaveUp: 'Dobara try karne ke baad bhi video nahi mila. Video ko file ki tarah DM mein bhejo, ya site par upload karo, phir ye save usse padha jayega.',
     unsupportedMessage:
       'Ise padha nahi ja saka. Aapka link aur note safe hai; aur dekhne ke liye apni copy upload karein.',
     ledgerTitle: 'Hisab (Ledger)',
@@ -286,6 +292,8 @@ export const STRINGS: Record<LanguageCode, StringsTable> = {
     aiWhatThisIs: 'AI · यह क्या है',
     captionSkipped: 'कैप्शन छोड़ा:',
     linkOnlyMessage: 'मैंने केवल लिंक और कैप्शन देखा',
+    videoWaiting: 'हर स्रोत आज़माने के बाद भी वीडियो नहीं मिला। थोड़ी देर में फिर कोशिश करेंगे; वीडियो आते ही यह सेव अपने आप अपडेट हो जाएगा।',
+    videoGaveUp: 'दोबारा कोशिश के बाद भी वीडियो नहीं मिला। वीडियो को फ़ाइल की तरह DM में भेजें या साइट पर अपलोड करें, फिर यह सेव उससे पढ़ा जाएगा।',
     unsupportedMessage:
       'इसे पढ़ा नहीं जा सका। आपका लिंक और नोट सुरक्षित है; अधिक जानकारी के लिए अपनी कॉपी अपलोड करें।',
     ledgerTitle: 'लेज़र (किसने क्या किया)',

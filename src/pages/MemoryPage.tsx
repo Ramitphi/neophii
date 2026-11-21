@@ -239,6 +239,11 @@ export function MemoryPage({
             {t.linkOnlyMessage}
           </p>
         )}
+        {memory.dm?.mediaRetry && memory.ingest === 'link_metadata' && (
+          <p className="pill" role="status" style={{ marginBottom: 10 }}>
+            {memory.dm.mediaRetry.state === 'waiting' ? t.videoWaiting : t.videoGaveUp}
+          </p>
+        )}
 
         {memory.ingest === 'unsupported' && (
           <p className="pill" style={{ marginBottom: 10 }}>
