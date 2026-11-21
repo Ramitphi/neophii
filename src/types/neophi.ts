@@ -155,6 +155,26 @@ export interface KeyPoint {
   evidence: string[];
 }
 
+/** What the person asked of a save in their own note. */
+export const ASK_KINDS = ['full_text', 'summary', 'translate', 'explain', 'steps', 'details', 'place_or_product', 'reminder', 'remember', 'other'] as const;
+export type AskKind = (typeof ASK_KINDS)[number];
+
+/** Whether this save, as read, can give them what they asked for. */
+export const ASK_STATUSES = ['found', 'partly', 'not_in_save'] as const;
+export type AskStatus = (typeof ASK_STATUSES)[number];
+
+export interface UserAsk {
+  /** The person's own words, exactly as typed. Set by code, never by the model. */
+  asked: string;
+  kind: AskKind;
+  status: AskStatus;
+  /** The deliverable: only what the save's own evidence gives toward the ask (the whole text when they asked for it). Empty when there is nothing. */
+  answer: string;
+  answer_evidence: string[];
+  /** What is missing and the simplest way to get it. Empty when the ask is found. */
+  missing: string;
+}
+
 export type NoteGroundingStatus =
   | 'grounded'
   | 'not_sure'
@@ -189,6 +209,8 @@ export interface MemoryAnalysis {
   /** One line saying what the item is. Never why the person saved it. */
   what_this_is?: string;
   key_points?: KeyPoint[];
+  /** What the person's note asked of this save, and how far the save can answer it. Only when there is a note. */
+  user_ask?: UserAsk;
 }
 
 export interface MemoryMedia {

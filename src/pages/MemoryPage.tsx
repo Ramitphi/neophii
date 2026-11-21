@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Calendar, Download, Trash2, Undo2 } from 'lucide-react';
+import { AskAnswer } from '../components/AskAnswer';
 import { ReelTile } from '../components/ReelTile';
 import { api, fetchAuthorizedMediaUrl } from '../lib/api';
 import { downloadMemoryIcs } from '../lib/ics';
+import { asksSomething } from '../lib/ask';
 import { laterNotes } from '../lib/notes';
 import type { StringsTable } from '../lib/i18n';
 import type { BBox, Category, EvidenceItem, LanguageCode, Memory, MemoryChip, Project } from '../types/neophi';
@@ -537,6 +539,27 @@ export function MemoryPage({
           <p className="muted" style={{ margin: 0 }}>Private mode is on, so no AI ideas are made for this save.</p>
         ) : (
           <>
+            {asksSomething(memory.analysis?.user_ask) && (
+              <div className="ask-card" role="group" aria-label={FEED_STRINGS[lang].ask.title}>
+                <div className="ask-head">
+                  <span className="pill pill-ai">{t.aiSuggestionPill}</span>
+                  <b>{FEED_STRINGS[lang].ask.title}</b>
+                  <span className={`ask-status is-${memory.analysis!.user_ask!.status}`}>
+                    {memory.analysis!.user_ask!.status === 'found'
+                      ? FEED_STRINGS[lang].ask.found
+                      : memory.analysis!.user_ask!.status === 'partly'
+                        ? FEED_STRINGS[lang].ask.partly
+                        : FEED_STRINGS[lang].ask.notInSave}
+                  </span>
+                </div>
+                <p className="ask-quote">“{memory.analysis!.user_ask!.asked}”</p>
+                {memory.analysis!.user_ask!.answer && (
+                  <AskAnswer text={memory.analysis!.user_ask!.answer} fileStem={memory.title || memory.id} T={FEED_STRINGS[lang].ask} />
+                )}
+                {memory.analysis!.user_ask!.missing && <p className="ask-missing">{memory.analysis!.user_ask!.missing}</p>}
+                <p className="memory-lane-hint">{FEED_STRINGS[lang].ask.hint}</p>
+              </div>
+            )}
             {memory.analysis?.note_grounding && memory.note && memory.analysis.note_grounding.status !== 'not_attempted' && (
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                 <span className="pill pill-ai">

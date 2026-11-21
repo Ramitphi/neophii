@@ -8,12 +8,19 @@ import type {
   ReelType,
   SearchQueryUnderstanding,
 } from '../src/types/neophi.js';
-import { CAPTION_USEFULNESS, KEY_POINT_KINDS, REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
+import {
+  ASK_KINDS,
+  ASK_STATUSES,
+  CAPTION_USEFULNESS,
+  KEY_POINT_KINDS,
+  REEL_TYPES,
+  TYPE_DETAIL_FIELDS,
+} from '../src/types/neophi.js';
 import { config } from './config.js';
 import { guardAnalysis } from './guard.js';
 
 const ANALYSIS_RULES =
-  "You read one saved item for a personal memory app. Return only JSON in the given schema. Rules: (1) Never write the user's reason; the user's note is given separately and is handled by code. (2) Every observation, suggestion and entity must cite an evidence id from your evidence list; if you cannot, leave evidence empty. (3) Only describe what you can actually see or hear in the media provided. If no media is provided, describe only the caption text; never guess what a video shows. (4) A fact that appears only in the user's note must not cite media or caption evidence. (5) Suggestions are possibilities with a confidence from 0 to 1, not facts. (6) Evidence for video uses seconds (t, tEnd); for images use a region in percent (bbox x, y, w, h).";
+  "You read one saved item for a personal memory app. Return only JSON in the given schema. Rules: (1) Never write the user's reason; the user's note is theirs and is kept by code. You read it only to fill user_ask (see 12). (2) Every observation, suggestion and entity must cite an evidence id from your evidence list; if you cannot, leave evidence empty. (3) Only describe what you can actually see or hear in the media provided. If no media is provided, describe only the caption text; never guess what a video shows. (4) A fact that appears only in the user's note must not cite media or caption evidence. (5) Suggestions are possibilities with a confidence from 0 to 1, not facts. (6) Evidence for video uses seconds (t, tEnd); for images use a region in percent (bbox x, y, w, h).";
 
 /**
  * What to look for in each kind of Reel. Shown to the model as a rubric; the guard enforces the list and the evidence.
@@ -41,7 +48,7 @@ export const ANALYSIS_SYSTEM_INSTRUCTION = `${ANALYSIS_RULES} Classify the item:
   REEL_TYPE_RUBRIC
 )
   .map(([k, v]) => `${k} = ${v}`)
-  .join('; ')}. Give reel_type_confidence from 0 to 1 and cite the evidence ids that show the type in reel_type_evidence. Use personal_other with a low confidence when nothing fits. The user's note may tell you why they saved it, but the type describes the item itself. (8) type_details holds only facts that are stated or shown in the item, each with the field named for that type above, a short value copied or closely paraphrased from the source, and at least one evidence id. Never fill a detail from general knowledge: no prices, hours, addresses, ingredients or steps that are not in the item. Leave type_details empty rather than guess. Judge the caption: (9) Set caption_signal.usefulness to informative when the caption states real facts about the item (steps, ingredients, a place with hours or price, a product with price, a tool name, a date), mixed when it has some facts among hashtags, mentions, emojis or hooks, noise when it is only hashtags, mentions, emojis, hooks like "wait for it" or "follow for more", or tags, and none when there is no caption. Copy the informative pieces word for word into useful_parts. Say in a few words what you ignored in ignored_reason. Never treat noise as meaning: hashtags and hooks are not evidence of what the item shows, and a noise caption must not be cited. Describe the item: (10) The user's note is optional and many saves have none; the reading must stand on its own. what_this_is is one short line saying what the item is and what it offers (for example "A 20-minute dal tadka recipe with a garlic tadka"). Never say or guess why the person saved it or what they plan to do. (11) key_points: up to 6 short, crisp points with the substance someone would come back for, each a few words, each with a kind (step, item, place, price, tool, date, fact) and evidence ids. Order steps as given. Only facts from the item; if the item has nothing concrete, return no key points.`;
+  .join('; ')}. Give reel_type_confidence from 0 to 1 and cite the evidence ids that show the type in reel_type_evidence. Use personal_other with a low confidence when nothing fits. The user's note may tell you why they saved it, but the type describes the item itself. (8) type_details holds only facts that are stated or shown in the item, each with the field named for that type above, a short value copied or closely paraphrased from the source, and at least one evidence id. Never fill a detail from general knowledge: no prices, hours, addresses, ingredients or steps that are not in the item. Leave type_details empty rather than guess. Judge the caption: (9) Set caption_signal.usefulness to informative when the caption states real facts about the item (steps, ingredients, a place with hours or price, a product with price, a tool name, a date), mixed when it has some facts among hashtags, mentions, emojis or hooks, noise when it is only hashtags, mentions, emojis, hooks like "wait for it" or "follow for more", or tags, and none when there is no caption. Copy the informative pieces word for word into useful_parts. Say in a few words what you ignored in ignored_reason. Never treat noise as meaning: hashtags and hooks are not evidence of what the item shows, and a noise caption must not be cited. Describe the item: (10) The user's note is optional and many saves have none; the reading must stand on its own. what_this_is is one short line saying what the item is and what it offers (for example "A 20-minute dal tadka recipe with a garlic tadka"). Never say or guess why the person saved it or what they plan to do. (11) key_points: up to 6 short, crisp points with the substance someone would come back for, each a few words, each with a kind (step, item, place, price, tool, date, fact) and evidence ids. Order steps as given. Only facts from the item; if the item has nothing concrete, return no key points. Read what the person asked: (12) When userNote is present it is the person's own request or intent for this save. Read it first and fill user_ask, and DO what they asked as far as the item allows: the result goes in answer, because answer is what the person gets saved. kind says what they want: full_text for the whole words, transcript or script of what is said; summary; translate; explain; steps; details for specific facts such as a price, name, place, time or link; place_or_product; reminder; remember when the note is only a label or context such as 'for Maa' and asks for nothing. status says whether this save, as you were given it, can provide that: found when the item's own evidence gives all of it, partly when some of it is there, not_in_save when none is. answer holds the deliverable, built only from what you can actually see or hear in the media or read in the caption, with answer_evidence ids. For full_text with media provided, write the complete transcript of everything said, in order, word for word, in the language and script it is spoken in (Hindi in Devanagari), without shortening, merging or summarising, and mark unclear words as [unclear]; cite a quote evidence id with its time. Without media, full_text may only copy the caption's own words, as partly. For summary, explain or translate, always do it when the caption or media has any content to work from (mark found, or partly if only some of it is covered); use not_in_save only when there is nothing to work from. Do it from the same evidence only, in the language the person wrote their note in unless they asked for another. Never write from memory or general knowledge what a person, speech, song or recipe usually says, and never invent what was not in the evidence. missing is one plain sentence saying what is missing and the simplest way to get it. If the ask needs what is said or shown in a video and mediaProvided is false, say the video was not available (only the link and caption were) and that the person can screen-record the Reel and send the video as a file in the DM, or upload it on the site. Never say or imply the video contains something you cannot see or hear, and never invent what the person wants beyond their own words. (13) When userNote asks for something, inferred_possible_intents and suggested_actions must serve that ask; never offer a suggestion about the caption's topic that ignores what the person asked. If the note is only a label, return no suggestions about it.`;
 
 const BBOX_SCHEMA = {
   type: Type.OBJECT,
@@ -156,6 +163,18 @@ const ANALYSIS_RESPONSE_SCHEMA = {
         propertyOrdering: ['kind', 'text', 'evidence'],
       },
     },
+    user_ask: {
+      type: Type.OBJECT,
+      properties: {
+        kind: { type: Type.STRING, format: 'enum', enum: [...ASK_KINDS] },
+        status: { type: Type.STRING, format: 'enum', enum: [...ASK_STATUSES] },
+        answer: { type: Type.STRING },
+        answer_evidence: { type: Type.ARRAY, items: { type: Type.STRING } },
+        missing: { type: Type.STRING },
+      },
+      required: ['kind', 'status', 'answer', 'answer_evidence', 'missing'],
+      propertyOrdering: ['kind', 'status', 'answer', 'answer_evidence', 'missing'],
+    },
     note_grounding: {
       type: Type.OBJECT,
       properties: {
@@ -199,6 +218,7 @@ const ANALYSIS_RESPONSE_SCHEMA = {
     'type_details',
     'what_this_is',
     'key_points',
+    'user_ask',
     'actionable_entities',
     'inferred_possible_intents',
     'suggested_actions',
@@ -310,7 +330,9 @@ export class VertexGeminiService implements GeminiService {
         url: memory.url,
         caption: memory.caption,
         ingest: memory.ingest,
+        mediaProvided: memory.ingest === 'full_media',
         userNote: memory.note,
+        laterUserNotes: laterDmNotes(memory),
         userChip: memory.chip,
         noteLanguage: detectNoteLanguage(memory.note),
       }),
@@ -325,6 +347,8 @@ export class VertexGeminiService implements GeminiService {
         responseSchema: ANALYSIS_RESPONSE_SCHEMA,
         temperature: 0.2,
         thinkingConfig: { thinkingBudget: 512 },
+        // A full transcript or recipe is long; leave room for it.
+        maxOutputTokens: 32000,
       },
     });
 
