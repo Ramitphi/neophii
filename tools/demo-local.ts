@@ -49,6 +49,17 @@ const gemini: GeminiService = {
       suggested_actions: [],
       purpose: 'other',
       note_grounding: { status: 'not_attempted', evidence: [], explanation: '' },
+      ...(m.note
+        ? {
+            user_ask: {
+              kind: /speech|entire|full|recipe/i.test(m.note) ? 'full_text' : 'remember',
+              status: 'not_in_save',
+              answer: '',
+              answer_evidence: [],
+              missing: 'The video was not available (only the link and caption were), so screen-record the Reel and send the video as a file in the DM, or upload it on the site.',
+            },
+          }
+        : {}),
     } as never;
   },
   async embedText() {

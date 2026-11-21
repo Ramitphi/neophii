@@ -20,7 +20,17 @@ import type {
   TypeDetail,
   TypeDetailField,
 } from '../src/types/neophi.js';
-import { CAPTION_USEFULNESS, KEY_POINT_KINDS, REEL_TYPES, TYPE_DETAIL_FIELDS } from '../src/types/neophi.js';
+import {
+  ASK_KINDS,
+  ASK_STATUSES,
+  CAPTION_USEFULNESS,
+  KEY_POINT_KINDS,
+  REEL_TYPES,
+  TYPE_DETAIL_FIELDS,
+  type AskKind,
+  type AskStatus,
+  type UserAsk,
+} from '../src/types/neophi.js';
 
 export const NOT_SURE_CONFIDENCE_THRESHOLD = 0.45;
 
@@ -96,13 +106,18 @@ export interface GuardMemoryContext {
 
 const VALID_USEFULNESS = new Set<CaptionUsefulness>(CAPTION_USEFULNESS);
 const VALID_KEY_POINT_KINDS = new Set<KeyPointKind>(KEY_POINT_KINDS);
+const VALID_ASK_KINDS = new Set<AskKind>(ASK_KINDS);
+const VALID_ASK_STATUSES = new Set<AskStatus>(ASK_STATUSES);
 export const MAX_KEY_POINTS = 6;
 const MAX_LINE = 160;
+/** What the person asked for can be long (a whole speech or recipe), so the answer has its own, larger limit. */
+export const MAX_ANSWER = 20000;
 /** A "what this is" line must describe the item, not guess the person's reason. */
 const REASON_GUESS = /\b(you|user|they|the person)\b[^.]{0,40}\b(saved|save|want|wants|wanted|plan|plans|planning|because|intend|might like)\b/i;
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 const clip = (s: string) => (s.length > MAX_LINE ? `${s.slice(0, MAX_LINE - 1).trimEnd()}…` : s);
+const clipAnswer = (s: string) => (s.length > MAX_ANSWER ? `${s.slice(0, MAX_ANSWER - 1).trimEnd()}…` : s);
 
 function guardCaptionSignal(raw: unknown, caption: string | null | undefined): CaptionSignal {
   const text = typeof caption === 'string' ? caption : '';
@@ -370,6 +385,45 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     key_points.push({ kind, text: clip(text), evidence: surviving });
   }
 
+  // 5d. What the person asked in their note, and how far this save can answer it. The asking words are theirs and
+  // come from the note, never from the model. A claim that the save answers it needs evidence that survived.
+  let user_ask: UserAsk | undefined;
+  if (hasNote && typeof memory.note === 'string') {
+    const rawAsk = input.user_ask && typeof input.user_ask === 'object' ? (input.user_ask as Record<string, unknown>) : {};
+    const kindRaw = typeof rawAsk.kind === 'string' ? rawAsk.kind : 'other';
+    const kind: AskKind = VALID_ASK_KINDS.has(kindRaw as AskKind) ? (kindRaw as AskKind) : 'other';
+    const statusRaw = typeof rawAsk.status === 'string' ? rawAsk.status : 'not_in_save';
+    let status: AskStatus = VALID_ASK_STATUSES.has(statusRaw as AskStatus) ? (statusRaw as AskStatus) : 'not_in_save';
+    const { surviving: askEvidence } = filterEvidenceRefs(rawAsk.answer_evidence);
+    let answer = typeof rawAsk.answer === 'string' ? rawAsk.answer.trim() : '';
+    // Only a short, line-like answer can be a guess at the person's reason; a long deliverable (a speech) may say "you" freely.
+    if (answer.length <= 300 && REASON_GUESS.test(answer)) answer = '';
+    if (status !== 'not_in_save' && (askEvidence.length === 0 || !answer)) {
+      status = 'not_in_save';
+      answer = '';
+    }
+    if (status === 'not_in_save') answer = '';
+    let missing = typeof rawAsk.missing === 'string' ? rawAsk.missing.trim() : '';
+    if (status !== 'found' && kind !== 'remember' && !missing) {
+      missing = memory.ingest === 'full_media' ? 'This part is not in what was read.' : 'Only the link and caption were available, not the video.';
+    }
+    // A label ('for Maa') or a reminder asks nothing of the save's content, so there is nothing to answer or miss.
+    if (kind === 'remember' || kind === 'reminder') {
+      status = 'found';
+      answer = '';
+      missing = '';
+    }
+    if (status === 'found') missing = '';
+    user_ask = {
+      asked: memory.note,
+      kind,
+      status,
+      answer: clipAnswer(answer),
+      answer_evidence: status === 'not_in_save' ? [] : askEvidence,
+      missing: clip(missing),
+    };
+  }
+
   // 6. Visible text & transcript (dropped for link_metadata since no media)
   const visible_text =
     memory.ingest === 'link_metadata'
@@ -439,5 +493,6 @@ export function guardAnalysis(raw: unknown, memory: GuardMemoryContext): MemoryA
     caption_signal,
     what_this_is,
     key_points,
+    ...(user_ask ? { user_ask } : {}),
   };
 }

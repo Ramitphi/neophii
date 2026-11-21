@@ -10,6 +10,7 @@ import type { GeminiService } from '../../server/gemini.js';
 import { createApp } from '../../server/index.js';
 import { loadInstagramConfig, type InstagramConfig } from '../../server/instagram/config.js';
 import type { FetchLike } from '../../server/instagram/media.js';
+import type { VideoResolver } from '../../server/instagram/resolvers.js';
 import { createInstagramWorker, type InstagramWorker } from '../../server/instagram/worker.js';
 import { extForMime, type MediaStorage } from '../../server/storage.js';
 import { InMemoryStore } from '../../server/store.js';
@@ -202,6 +203,7 @@ export interface Harness {
 
 export function setupHarness(opts: {
   fetchImpl?: FetchLike;
+  resolvers?: VideoResolver[];
   gemini?: GeminiService;
   config?: Partial<InstagramConfig>;
   store?: InMemoryStore;
@@ -220,7 +222,7 @@ export function setupHarness(opts: {
     storage,
     gemini,
     authVerifier: async (token) => token,
-    instagram: { config, fetchImpl, now: clock.now, verifyWorkerCaller: opts.verifyWorkerCaller },
+    instagram: { config, fetchImpl, resolvers: opts.resolvers ?? [], now: clock.now, verifyWorkerCaller: opts.verifyWorkerCaller },
   });
   const worker = app.locals.instagramWorker as InstagramWorker;
   const post = (body: string, signature: string | null = sign(body), headers: Record<string, string> = {}) => {
@@ -235,7 +237,7 @@ export function setupHarness(opts: {
     patch: (p: string) => request(app).patch(p).set('Authorization', `Bearer ${uid}`),
     del: (p: string) => request(app).delete(p).set('Authorization', `Bearer ${uid}`),
   });
-  const newWorker = () => createInstagramWorker({ store, storage, gemini, config, fetchImpl, now: clock.now });
+  const newWorker = () => createInstagramWorker({ store, storage, gemini, config, resolvers: opts.resolvers ?? [], fetchImpl, now: clock.now });
   return { app, store, storage, gemini, worker, config, clock, post, as, newWorker };
 }
 

@@ -32,6 +32,7 @@ import { LANDING } from '../landing/strings';
 import { FEED_STRINGS } from '../pages/feedStrings';
 import type { Category, LanguageCode, Memory, MemoryPurpose, Platform } from '../types/neophi';
 import { aiLine as describeForAi } from '../lib/aiLine';
+import { asksSomething } from '../lib/ask';
 import { useShellToast } from './AppShell';
 import { InstagramThumb, instagramPost } from './InstagramThumb';
 
@@ -99,6 +100,7 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
   const PurposeIcon = PURPOSE_ICON[memory.analysis?.purpose ?? 'other'];
   const platform = PLATFORM[memory.platform] ?? PLATFORM.other;
   const intent = memory.analysis?.inferred_possible_intents?.[0];
+  const ask = memory.analysis?.user_ask;
   const later = laterNotes(memory);
   const noteless = memory.note || memory.privateNoAI ? null : describeForAi(memory.analysis);
   // A source that is gone keeps its 'not available' look instead of Instagram's empty embed.
@@ -110,6 +112,10 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
       ? F.aiPending
       : memory.analysisStatus === 'failed'
         ? F.aiFailed
+        : asksSomething(ask)
+          ? `${F.ask.youAsked}: ${ask.status === 'found' ? F.ask.found : ask.status === 'partly' ? F.ask.partly : F.ask.notInSave}${
+              ask.missing || ask.answer ? ` · ${(ask.missing || ask.answer).slice(0, 150)}` : ''
+            }`
         : intent
           ? `${F.maybe}: ${intent.intent} · ${intent.uncertain ? F.aiNotSure : `${Math.round(intent.confidence * 100)}%`}`
           : memory.analysis?.source_summary || null;

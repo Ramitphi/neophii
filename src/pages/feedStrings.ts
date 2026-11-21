@@ -35,6 +35,20 @@ export interface FeedStrings {
   ig: InstagramStrings;
   /** The Journey page: every save in one growing tree. */
   journey: JourneyStrings;
+  /** What the person asked of a save in their note, and how far the save can answer it. */
+  ask: AskStrings;
+}
+
+export interface AskStrings {
+  title: string;
+  youAsked: string;
+  found: string;
+  partly: string;
+  notInSave: string;
+  hint: string;
+  copy: string;
+  copied: string;
+  download: string;
 }
 
 export interface JourneyStrings {
@@ -203,6 +217,17 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       demoFailed: 'Could not send the sample share just now.',
       simulated: 'Simulated Instagram share',
     },
+    ask: {
+      title: 'What you asked for',
+      youAsked: 'You asked',
+      found: 'It is in this save',
+      partly: 'Partly in this save',
+      notInSave: 'Not in this save yet',
+      hint: 'Your words, as you typed them. The reading only says what the save itself contains.',
+      copy: 'Copy',
+      copied: 'Copied',
+      download: 'Download as text',
+    },
     journey: {
       nav: 'Journey',
       title: 'Your journey',
@@ -314,6 +339,17 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       demoFailed: 'Abhi sample share nahi bhej paaye.',
       simulated: 'Simulated Instagram share',
     },
+    ask: {
+      title: 'Tumne kya maanga tha',
+      youAsked: 'Tumne maanga',
+      found: 'Is save mein hai',
+      partly: 'Is save mein thoda hai',
+      notInSave: 'Is save mein abhi nahi hai',
+      hint: 'Tumhare shabd, jaise likhe the. Reading sirf wahi batati hai jo save mein hai.',
+      copy: 'Copy karo',
+      copied: 'Copy ho gaya',
+      download: 'Text file download karo',
+    },
     journey: {
       nav: 'Journey',
       title: 'Tumhari journey',
@@ -424,6 +460,17 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       demoSending: 'भेज रहे हैं और पढ़ रहे हैं…',
       demoFailed: 'अभी सैंपल शेयर नहीं भेज पाए।',
       simulated: 'सिम्युलेटेड Instagram शेयर',
+    },
+    ask: {
+      title: 'आपने क्या माँगा था',
+      youAsked: 'आपने माँगा',
+      found: 'इस सेव में है',
+      partly: 'इस सेव में थोड़ा है',
+      notInSave: 'इस सेव में अभी नहीं है',
+      hint: 'आपके शब्द, जैसे लिखे थे। रीडिंग सिर्फ़ वही बताती है जो सेव में है।',
+      copy: 'कॉपी करें',
+      copied: 'कॉपी हो गया',
+      download: 'टेक्स्ट फ़ाइल डाउनलोड करें',
     },
     journey: {
       nav: 'यात्रा',

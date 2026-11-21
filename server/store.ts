@@ -1,11 +1,15 @@
 import admin from 'firebase-admin';
 import { FieldValue } from '@google-cloud/firestore';
-import type { Category, DmNote, Memory, Project } from '../src/types/neophi.js';
+import type { Category, DmNote, MediaRetry, Memory, MemoryMedia, Project } from '../src/types/neophi.js';
 import { ensureFirebaseAdmin } from './firebase.js';
 import {
   applyAnalysis,
+  attachLateMedia,
   buildAnalysisJob,
+  buildMediaRetryJob,
   clearedPayload,
+  mediaJobId,
+  withMediaRetry,
   eventIdForMemory,
   finalizeShare,
   leaseJob,
@@ -87,6 +91,15 @@ export interface NeophiStore {
     nowMs: number
   ): Promise<{ ok: boolean; alreadyFinal: boolean }>;
   attachInstagramNote(uid: string, memoryId: string, note: DmNote, nowMs: number): Promise<NoteOutcome | 'gone'>;
+  /** The video arrived on a later try: stores it on the memory and queues a fresh reading with it. False if it cannot be applied. */
+  attachInstagramMedia(
+    uid: string,
+    memoryId: string,
+    input: { media: MemoryMedia; mediaMime: string; mediaBytes: number },
+    nowMs: number
+  ): Promise<boolean>;
+  /** Updates the "could not get the video yet" notice on a DM memory. */
+  setInstagramMediaRetry(uid: string, memoryId: string, retry: MediaRetry, nowMs: number): Promise<void>;
   /** Stores an analysis only if the memory still exists, is not private and is still at `generation`. */
   applyInstagramAnalysis(
     uid: string,
@@ -443,8 +456,43 @@ export class FirestoreStore implements NeophiStore {
       if (!next.privateNoAI && next.dm) {
         const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
         tx.set(this.igJobs().doc(job.id), FirestoreStore.toFs(job));
+        if (input.retryMedia) {
+          const retry = buildMediaRetryJob(uid, memoryId, eventIdForMemory(memoryId), nowMs);
+          tx.set(this.igJobs().doc(retry.id), FirestoreStore.toFs(retry));
+        }
       }
       return { ok: true, alreadyFinal: false };
+    });
+  }
+
+  async attachInstagramMedia(
+    uid: string,
+    memoryId: string,
+    input: { media: MemoryMedia; mediaMime: string; mediaBytes: number },
+    nowMs: number
+  ): Promise<boolean> {
+    return this.db.runTransaction(async (tx) => {
+      const memRef = this.memoriesCol(uid).doc(memoryId);
+      const doc = await tx.get(memRef);
+      if (!doc.exists) return false;
+      const raw = doc.data() ?? {};
+      const next = attachLateMedia(stripEmbedding(raw), input, new Date(nowMs).toISOString());
+      if (!next || !next.dm) return false;
+      tx.set(memRef, { ...this.memoryPayload(next), embedding: raw.embedding ?? null });
+      const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
+      tx.set(this.igJobs().doc(job.id), FirestoreStore.toFs(job));
+      return true;
+    });
+  }
+
+  async setInstagramMediaRetry(uid: string, memoryId: string, retry: MediaRetry, nowMs: number): Promise<void> {
+    await this.db.runTransaction(async (tx) => {
+      const memRef = this.memoriesCol(uid).doc(memoryId);
+      const doc = await tx.get(memRef);
+      if (!doc.exists) return;
+      const raw = doc.data() ?? {};
+      const next = withMediaRetry(stripEmbedding(raw), retry, new Date(nowMs).toISOString());
+      if (next) tx.set(memRef, { ...this.memoryPayload(next), embedding: raw.embedding ?? null });
     });
   }
 
@@ -500,6 +548,7 @@ export class FirestoreStore implements NeophiStore {
         }
       }
       tx.delete(this.igJobs().doc(analysisJobId(memoryId)));
+      tx.delete(this.igJobs().doc(mediaJobId(memoryId)));
     });
   }
 
@@ -816,8 +865,35 @@ export class InMemoryStore implements NeophiStore {
     if (!next.privateNoAI && next.dm) {
       const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
       this.igJobs.set(job.id, job);
+      if (input.retryMedia) {
+        const retry = buildMediaRetryJob(uid, memoryId, eventIdForMemory(memoryId), nowMs);
+        this.igJobs.set(retry.id, retry);
+      }
     }
     return { ok: true, alreadyFinal: false };
+  }
+
+  async attachInstagramMedia(
+    uid: string,
+    memoryId: string,
+    input: { media: MemoryMedia; mediaMime: string; mediaBytes: number },
+    nowMs: number
+  ): Promise<boolean> {
+    const existing = this.bucket(uid).memories.get(memoryId);
+    if (!existing) return false;
+    const next = attachLateMedia(stripEmbedding(existing as unknown as Record<string, unknown>), input, new Date(nowMs).toISOString());
+    if (!next || !next.dm) return false;
+    this.bucket(uid).memories.set(memoryId, { ...plain(next), embedding: existing.embedding ?? null });
+    const job = buildAnalysisJob(uid, memoryId, next.dm.analysisGeneration, nowMs);
+    this.igJobs.set(job.id, job);
+    return true;
+  }
+
+  async setInstagramMediaRetry(uid: string, memoryId: string, retry: MediaRetry, nowMs: number): Promise<void> {
+    const existing = this.bucket(uid).memories.get(memoryId);
+    if (!existing) return;
+    const next = withMediaRetry(stripEmbedding(existing as unknown as Record<string, unknown>), retry, new Date(nowMs).toISOString());
+    if (next) this.bucket(uid).memories.set(memoryId, { ...plain(next), embedding: existing.embedding ?? null });
   }
 
   async attachInstagramNote(uid: string, memoryId: string, note: DmNote, nowMs: number) {
@@ -866,6 +942,7 @@ export class InMemoryStore implements NeophiStore {
     const event = this.igEvents.get(eventId);
     if (event && event.uid === uid) this.igEvents.set(eventId, { ...clearedPayload(event), shareState: 'deleted' });
     this.igJobs.delete(analysisJobId(memoryId));
+    this.igJobs.delete(mediaJobId(memoryId));
   }
 
   async instagramCounts(): Promise<InstagramCounts> {

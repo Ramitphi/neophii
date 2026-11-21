@@ -12,6 +12,7 @@ import type {
   MemoryMedia,
   AnalysisStatus,
   DmAnalysisBasis,
+  MediaRetry,
 } from '../../src/types/neophi.js';
 
 export type AttachmentKind = MemoryDmSource['attachmentKind'];
@@ -56,7 +57,7 @@ export type InstagramJobStatus = 'queued' | 'leased' | 'done' | 'dead';
 
 export interface InstagramJob {
   id: string;
-  type: 'event' | 'analyze';
+  type: 'event' | 'analyze' | 'media';
   uid: string;
   eventId: string | null;
   memoryId: string | null;
@@ -80,6 +81,9 @@ export interface InstagramCounts {
 
 export const RETENTION_MS = 7 * 24 * 3_600_000;
 export const ANALYSIS_MAX_ATTEMPTS = 4;
+/** A Reel whose video no source could give is tried again after these waits (so four tries in all, over a few hours). */
+export const MEDIA_RETRY_DELAYS_MS = [5 * 60_000, 30 * 60_000, 2 * 3_600_000];
+export const MEDIA_RETRY_MAX_ATTEMPTS = MEDIA_RETRY_DELAYS_MS.length + 1;
 const MEMORY_PREFIX = 'ig_';
 
 export function eventIdFor(recipientId: string, messageId: string): string {
@@ -98,6 +102,10 @@ export function eventIdForMemory(memoryId: string): string | null {
 
 export function analysisJobId(memoryId: string): string {
   return `analyze_${memoryId}`;
+}
+
+export function mediaJobId(memoryId: string): string {
+  return `media_${memoryId}`;
 }
 
 export function eventJobId(eventId: string): string {
@@ -121,6 +129,26 @@ export function buildEventJob(event: InstagramEventRecord, runAt: number, maxAtt
     updatedAtMs: event.receivedAtMs,
     outcome: null,
     expireAtMs: event.receivedAtMs + RETENTION_MS,
+  };
+}
+
+export function buildMediaRetryJob(uid: string, memoryId: string, eventId: string | null, nowMs: number): InstagramJob {
+  return {
+    id: mediaJobId(memoryId),
+    type: 'media',
+    uid,
+    eventId,
+    memoryId,
+    generation: 0,
+    status: 'queued',
+    attempts: 0,
+    maxAttempts: MEDIA_RETRY_MAX_ATTEMPTS,
+    nextRunAt: nowMs + MEDIA_RETRY_DELAYS_MS[0],
+    leaseId: null,
+    createdAtMs: nowMs,
+    updatedAtMs: nowMs,
+    outcome: null,
+    expireAtMs: nowMs + RETENTION_MS,
   };
 }
 
@@ -243,6 +271,8 @@ export interface ShareFinalizeInput {
   mediaMime?: string;
   mediaBytes?: number;
   permalink?: string | null;
+  /** No source gave the video, but some could later (a Reel link, or a configured source): try again in a while. */
+  retryMedia?: boolean;
 }
 
 export function finalizeShare(memory: Memory, input: ShareFinalizeInput, nowIso: string): Memory | null {
@@ -254,6 +284,9 @@ export function finalizeShare(memory: Memory, input: ShareFinalizeInput, nowIso:
   };
   if (input.mediaMime) dm.mediaMime = input.mediaMime;
   if (typeof input.mediaBytes === 'number') dm.mediaBytes = input.mediaBytes;
+  if (input.retryMedia && !memory.privateNoAI) {
+    dm.mediaRetry = { state: 'waiting', attempt: 0, max: MEDIA_RETRY_MAX_ATTEMPTS, nextAt: new Date(Date.parse(nowIso) + MEDIA_RETRY_DELAYS_MS[0]).toISOString() };
+  }
   return {
     ...memory,
     media: input.media,
@@ -263,6 +296,30 @@ export function finalizeShare(memory: Memory, input: ShareFinalizeInput, nowIso:
     analysisStatus: memory.privateNoAI ? 'skipped' : 'pending',
     updatedAt: nowIso,
   };
+}
+
+/** The video arrived on a later try: store it, read the save again with it, and drop the waiting notice. */
+export function attachLateMedia(
+  memory: Memory,
+  input: { media: MemoryMedia; mediaMime: string; mediaBytes: number },
+  nowIso: string
+): Memory | null {
+  if (!memory.dm || memory.privateNoAI || memory.dm.mediaOutcome === 'stored') return null;
+  const { mediaRetry: _drop, ...dm } = memory.dm;
+  void _drop;
+  return {
+    ...memory,
+    media: input.media,
+    ingest: 'full_media',
+    dm: { ...dm, mediaOutcome: 'stored', mediaMime: input.mediaMime, mediaBytes: input.mediaBytes, analysisGeneration: memory.dm.analysisGeneration + 1 },
+    analysisStatus: 'pending',
+    updatedAt: nowIso,
+  };
+}
+
+export function withMediaRetry(memory: Memory, retry: MediaRetry, nowIso: string): Memory | null {
+  if (!memory.dm || memory.dm.mediaOutcome === 'stored') return null;
+  return { ...memory, dm: { ...memory.dm, mediaRetry: retry }, updatedAt: nowIso };
 }
 
 export interface InstagramAnalysisPatch {

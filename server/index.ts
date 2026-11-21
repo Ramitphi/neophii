@@ -17,6 +17,7 @@ import {
 } from './instagram/internal.js';
 import { logEvent } from './instagram/log.js';
 import type { FetchLike } from './instagram/media.js';
+import { loadResolvers, type VideoResolver } from './instagram/resolvers.js';
 import { createInstagramWebhookRouter, newWebhookStats } from './instagram/webhook.js';
 import { createInstagramWorker, startInstagramPoller, type InstagramWorker } from './instagram/worker.js';
 import { createApiRouter } from './routes.js';
@@ -26,6 +27,7 @@ import { createStore, type NeophiStore } from './store.js';
 export interface InstagramOverrides {
   config?: InstagramConfig;
   fetchImpl?: FetchLike;
+  resolvers?: VideoResolver[];
   now?: () => number;
   verifyWorkerCaller?: WorkerCallerVerifier;
 }
@@ -57,6 +59,7 @@ export function createApp(overrides?: {
     storage,
     gemini,
     config: igConfig,
+    resolvers: overrides?.instagram?.resolvers ?? loadResolvers(),
     fetchImpl: overrides?.instagram?.fetchImpl,
     now: overrides?.instagram?.now,
   });
