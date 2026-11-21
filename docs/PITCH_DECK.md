@@ -11,22 +11,25 @@ Follows the organiser's template sections in order (one slide each unless noted)
 - **Live prototype:** https://neophi-4ngyvfbl6a-el.a.run.app (open it, tap **Open Neophi**).
 
 ## 2. Problem statement
-When you save a Reel or a post, your mind makes a decision for your future self: *I need this, it is an idea, I will try it.* Almost always, by the time you could use it, that decision is gone, and the pile of saves cannot tell you what it was for. The saving effort is wasted and you cannot reach what you meant. Saved posts end up as one long list or big folders nobody opens again.
+Everyone saves Reels and posts on Instagram, and it happens to all of us. When you save one, your brain makes a decision for your future self: a plan, an idea, inspiration, something to study, a piece of advice, anything. Almost always that decision is gone later, and the saving effort was wasted. For three reasons:
+1. **You forget to open it again.** The save sits there and nothing brings you back to it.
+2. **When you do go, it is a grid of thumbnails.** You made collections, but a collection is only thumbnails; it gives you nothing to act on. What you saved a week ago, and anything older, is effectively lost.
+3. **Even when you find the Reel and open it, you no longer remember why you saved it, or what in it mattered.**
 
 ## 3. Brief about the idea
-Send a Reel or post to Neophi on Instagram, like you would send it to a friend, and say why if you like (the message is optional). Neophi keeps your words exactly as typed, reads the save with Gemini on Vertex AI (what it is, the useful points, what the caption really says), and brings everything together in **Journey**, one tree of smart groups that grows by itself.
+Neophi helps you take charge, so your decision gets its value back. Send a Reel or post to Neophi on Instagram, like you would send it to a friend, and say why if you like (the message is optional). Neophi keeps your words exactly as typed, reads the save with Gemini on Vertex AI (what it is, the key points, and any next steps, right then and there), and brings everything together in **Journey**, one tree of smart groups that grows by itself. You get what you saved, you remember it, and you know what to do next.
 
 ## 4. Opportunities
 **How different is it from other ideas?**
-- Bookmarks and Instagram's own Saved tab store the *post*. Neophi stores the *decision*: your own words, first, always.
+- Instagram's Saved tab and collections store the *post* as a thumbnail. Neophi stores the *decision*: your own words, first, always, plus what mattered and the next steps.
 - Notes apps need you to leave Instagram and write. Neophi works from the share you already do.
-- AI summarisers describe content. Neophi never invents why you saved it; AI text is labelled, separate and shows its evidence or says it is not sure.
+- AI summarisers describe content and guess. Neophi never invents why you saved it; AI text is labelled, separate, shows its evidence or says it is not sure; and it uses a caption only when the caption is genuinely about the Reel (copy-pasted text, hashtag walls and other-language dumps are ignored and said so).
 
 **How will it solve the problem?**
-You keep your reason at the moment you have it (one share, a few words). You get it back later in one place (Journey), grouped by your own categories and by what each save is about, searchable in English, Hindi and Hinglish.
+It answers the three reasons directly: it brings saves back (Today, search, reminders), it replaces the wall of thumbnails with **Journey** and the key points of each save, and it keeps the reason and what mattered so you remember why you saved it, with next steps given there and then.
 
 **USP**
-1. Words first, exactly as typed. 2. AI kept apart and honest (labelled, evidence, "not sure"). 3. Journey: everything in one growing tree instead of folders. 4. Works from the Instagram share you already do; no new habit. 5. Private by design (private saves never reach a model; export and delete in one tap).
+1. Your words first, exactly as typed. 2. The AI is kept apart and honest (labelled, evidence, "not sure", ignores caption noise). 3. **Journey**: everything in one growing tree instead of thumbnails and folders. 4. Works from the Instagram share you already do; no new habit; works even without a note. 5. Private by design. 6. Built to be multiplatform: one Google account, many connections (Instagram today, more coming).
 
 ## 5. List of features offered
 - Share a Reel or post to the Neophi Instagram account by DM; optional words with it.
@@ -69,6 +72,8 @@ flowchart TB
 ```
 
 ## 9. Technologies to be used
+**Google AI tools used to build it:** Google Antigravity, Google AI Studio, Gemini CLI, Google's Firebase, Cloud Run and gcloud tool servers, and Gemini Veo 3.1 (the video on the website's main page).
+
 Google Cloud: Cloud Run (public service and private worker), Firestore (with vector index), Cloud Storage, Cloud Scheduler, Secret Manager, Firebase Authentication, Vertex AI with Gemini (reading, search understanding, embeddings). Meta Instagram messaging webhooks. React, TypeScript, Vite, Node and Express.
 
 ## 10. Estimated implementation cost (optional)
