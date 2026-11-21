@@ -4,7 +4,12 @@
 **Saving is a decision. Neophi keeps it.**
 
 ## The problem
-When you save a Reel or a post, your mind is making a decision for your future self: *I need this*, *this is an idea*, *I will try this*. Almost always, by the time you could use it, that decision is gone, and the pile of saves cannot tell you what it was for. The effort of saving was wasted, and you cannot reach what you meant.
+Everyone saves Reels and posts on Instagram, and this happens to all of us. When you save one, your brain makes a decision for your future self: a plan, an idea, inspiration, something to study, advice. Almost always that decision is gone later, and the saving effort was wasted, for three reasons:
+1. You forget to open it again.
+2. When you do go, collections are only a grid of thumbnails that gives you nothing to act on; what you saved a week ago and anything older is effectively lost.
+3. Even when you find the Reel and open it, you no longer remember why you saved it or what in it mattered.
+
+Neophi helps you take charge, so your decision gets its value back: you get what you saved, you remember it, and any next steps come right then and there.
 
 ## What Neophi does
 Send a Reel or post to Neophi on Instagram, the way you would send it to a friend, and say why if you like. The message is optional: the save works without it.
