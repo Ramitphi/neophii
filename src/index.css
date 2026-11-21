@@ -1550,3 +1550,14 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+.key-point-source {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--border, currentColor);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  opacity: 0.75;
+  vertical-align: middle;
+}
