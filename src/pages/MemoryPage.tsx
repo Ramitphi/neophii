@@ -108,6 +108,22 @@ export function MemoryPage({
     }
   };
 
+  /** Compact source tags for key points: where each point came from, without repeating the whole caption. */
+  const renderSourceTags = (ids: string[]) => {
+    if (!memory.analysis) return null;
+    const tags = new Set<string>();
+    for (const id of ids) {
+      const ev = memory.analysis.evidence.find((e) => e.id === id);
+      if (!ev) continue;
+      tags.add(ev.kind === 'frame' && typeof ev.t === 'number' ? formatTime(ev.t) : ev.kind);
+    }
+    return [...tags].map((tag) => (
+      <span key={tag} className="key-point-source">
+        {tag}
+      </span>
+    ));
+  };
+
   const renderEvidenceChips = (ids: string[]) => {
     if (!memory.analysis) return null;
     if (ids.length === 0) {
@@ -294,7 +310,7 @@ export function MemoryPage({
                 <ul>
                   {memory.analysis.key_points!.map((p, idx) => (
                     <li key={idx}>
-                      <span className="key-point-kind">{p.kind}</span> {p.text} {renderEvidenceChips(p.evidence)}
+                      <span className="key-point-kind">{p.kind}</span> {p.text} {renderSourceTags(p.evidence)}
                     </li>
                   ))}
                 </ul>
