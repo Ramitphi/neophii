@@ -2309,12 +2309,12 @@ html.lp-root[data-theme='light'] {
   color: var(--ai-text);
 }
 
-/* your words: a highlighter stroke in the card colour */
+/* your words: plain italic, no stroke under or behind them */
 :is(.lp, .ph-app) .ph-words {
   border-bottom: 0;
-  padding: 0 4px;
-  margin-left: -4px;
-  background: linear-gradient(transparent 55%, color-mix(in srgb, var(--acc) 70%, transparent) 55%, color-mix(in srgb, var(--acc) 70%, transparent) 92%, transparent 92%);
+  padding: 0;
+  margin-left: 0;
+  background: none;
 }
 :is(.lp, .ph-app) .ph-more {
   border-left-color: var(--acc-deep);
