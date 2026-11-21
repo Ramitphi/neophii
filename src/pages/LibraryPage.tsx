@@ -30,7 +30,7 @@ export function LibraryPage({
   const [renameText, setRenameText] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const { categoryOf, popOf } = useCategoryPops(categories);
-  const { act, addNote, copy } = useMemoryActions(lang, onPatch);
+  const { act, copy } = useMemoryActions(lang, onPatch);
 
   if (memories.length === 0) {
     return <p className="ph-empty">{F.libraryEmpty}</p>;
@@ -124,7 +124,6 @@ export function LibraryPage({
                 t={t}
                 onOpen={onOpenMemory}
                 onAct={(mem, a) => void act(mem, a)}
-                onAddNote={addNote}
                 onCopy={(u) => void copy(u)}
               />
             ))}

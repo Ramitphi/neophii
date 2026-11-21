@@ -1,5 +1,5 @@
 // A phone-style feed of saved Reels. Tabs are categories built from the saver's own words; each card has
-// an action rail (open, later, done, copy link), the words it was saved with, and a box to add more context.
+// the words it was saved with and one row of actions (open, later, done, copy link).
 // Videos are not fetched or described. No counts are shown, because none are measured.
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
@@ -10,12 +10,10 @@ import {
   Check,
   CircleCheck,
   Clapperboard,
-  ExternalLink,
   Home,
   Inbox,
   Instagram,
   Link2,
-  Pencil,
   Plus,
   Quote,
   Search,
@@ -95,28 +93,17 @@ function SaveCard({
   save,
   s,
   onToggle,
-  onAddNote,
   onCopy,
 }: {
   save: Save;
   s: LandingStrings;
   onToggle: (id: string, key: 'later' | 'done') => void;
-  onAddNote: (id: string, note: string) => void;
   onCopy: (url: string) => void;
 }) {
   const f = s.feed;
   const c = catOf(save.cat);
   const PlatformIcon = PLATFORM_ICON[save.platform];
-  const [draft, setDraft] = useState('');
   const [headline, ...more] = save.notes;
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
-    onAddNote(save.id, text);
-    setDraft('');
-  };
 
   return (
     <article className={`ph-card ${save.done ? 'is-done' : ''}`} style={popVars(c.pop)}>
@@ -163,8 +150,8 @@ function SaveCard({
       <p className="ph-ai">{f.aiNone}</p>
 
       <div className="ph-actions">
-        <a className="ph-act" href={save.url} target="_blank" rel="noopener noreferrer">
-          <ExternalLink size={15} aria-hidden="true" /> {f.rail.open}
+        <a className="ph-act is-primary" href={save.url} target="_blank" rel="noopener noreferrer">
+          {f.openReel}
         </a>
         <button type="button" className={`ph-act ${save.later ? 'is-on' : ''}`} aria-pressed={save.later} onClick={() => onToggle(save.id, 'later')}>
           {save.later ? <BookmarkCheck size={15} aria-hidden="true" /> : <Bookmark size={15} aria-hidden="true" />}{' '}
@@ -176,28 +163,6 @@ function SaveCard({
         <button type="button" className="ph-act" onClick={() => onCopy(save.url)}>
           <Link2 size={15} aria-hidden="true" /> {f.rail.copy}
         </button>
-      </div>
-
-      <div className="ph-cta">
-        <a className="ph-try" href={save.url} target="_blank" rel="noopener noreferrer">
-          {f.openReel}
-        </a>
-        <form className="ph-note" onSubmit={submit}>
-          <Pencil size={16} aria-hidden="true" />
-          <input
-            id={`ph-note-${save.id}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={f.addContext}
-            aria-label={f.addContextLabel}
-            maxLength={120}
-          />
-          {draft.trim() && (
-            <button type="submit" className="ph-note-add">
-              {f.add}
-            </button>
-          )}
-        </form>
       </div>
     </article>
   );
@@ -243,9 +208,6 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
 
   const toggle = (id: string, key: 'later' | 'done') =>
     setSaves((all) => all.map((x) => (x.id === id ? { ...x, [key]: !x[key] } : x)));
-
-  const addNote = (id: string, note: string) =>
-    setSaves((all) => all.map((x) => (x.id === id ? { ...x, notes: [...x.notes, note] } : x)));
 
   const copy = async (url: string) => {
     try {
@@ -306,7 +268,7 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
           {shown.length === 0 ? (
             <p className="ph-empty">{empty}</p>
           ) : (
-            shown.map((save) => <SaveCard key={save.id} save={save} s={s} onToggle={toggle} onAddNote={addNote} onCopy={(u) => void copy(u)} />)
+            shown.map((save) => <SaveCard key={save.id} save={save} s={s} onToggle={toggle} onCopy={(u) => void copy(u)} />)
           )}
         </div>
 

@@ -36,7 +36,7 @@ export function TodayPage({
   const [loadingSamples, setLoadingSamples] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const { categoryOf, popOf } = useCategoryPops(categories);
-  const { act, addNote, copy } = useMemoryActions(lang, onPatch);
+  const { act, copy } = useMemoryActions(lang, onPatch);
 
   if (!feed) {
     return <p className="ph-empty">{F.loading}</p>;
@@ -82,7 +82,6 @@ export function TodayPage({
       t={t}
       onOpen={onOpenMemory}
       onAct={(mem, a) => void act(mem, a)}
-      onAddNote={addNote}
       onCopy={(u) => void copy(u)}
     />
   );

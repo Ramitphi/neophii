@@ -1,7 +1,7 @@
-// The save card used on every tab (Feed, Today, Library): the media with its action rail, the user's exact
-// words first, the title and category with its reason, pills, a labelled AI line, and Open + Add context.
+// The save card used on every tab (Feed, Today, Library): the media, the user's exact words first, the title
+// and category with its reason, pills, a labelled AI line, and one row of actions (Open, Later, Done, Copy link).
 // Also the shared actions (Later, Done, add context, copy link) with their toasts.
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BadgeCheck,
   Bookmark,
@@ -17,7 +17,6 @@ import {
   Instagram,
   Link2,
   Palette,
-  Pencil,
   Plane,
   Quote,
   ShoppingBag,
@@ -89,16 +88,13 @@ export interface CardProps {
   t: StringsTable;
   onOpen: (id: string) => void;
   onAct: (memory: Memory, action: 'later' | 'done') => void;
-  onAddNote: (memory: Memory, text: string) => Promise<void>;
   onCopy: (url: string) => void;
 }
 
-export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct, onAddNote, onCopy }: CardProps) {
+export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct, onCopy }: CardProps) {
   const L = LANDING[lang].feed;
   const F = FEED_STRINGS[lang];
   const thumb = useThumb(memory);
-  const [draft, setDraft] = useState('');
-  const [busy, setBusy] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
   const PurposeIcon = PURPOSE_ICON[memory.analysis?.purpose ?? 'other'];
   const platform = PLATFORM[memory.platform] ?? PLATFORM.other;
@@ -125,19 +121,6 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
       : memory.ingest === 'unsupported'
         ? F.unavailable
         : null;
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const text = draft.trim();
-    if (!text || busy) return;
-    setBusy(true);
-    try {
-      await onAddNote(memory, text);
-      setDraft('');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <article className="ph-card ph-chrome" style={popVars(pop)}>
@@ -246,12 +229,11 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
       )}
 
       {/* Quick actions under the words; the picture above stays just the Reel. */}
+      {/* One row: Open (the save's page) first, then the quick actions. Context is added on the save's page. */}
       <div className="ph-actions">
-        {memory.url && !igPost && (
-          <a className="ph-act" href={memory.url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink size={15} aria-hidden="true" /> {L.rail.open}
-          </a>
-        )}
+        <button type="button" className="ph-act is-primary" onClick={() => onOpen(memory.id)}>
+          {t.actionOpen}
+        </button>
         <button type="button" className="ph-act" onClick={() => onAct(memory, 'later')}>
           <Bookmark size={15} aria-hidden="true" /> {L.rail.later}
         </button>
@@ -263,29 +245,6 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
             <Link2 size={15} aria-hidden="true" /> {L.rail.copy}
           </button>
         )}
-      </div>
-
-      <div className="ph-cta">
-        <button type="button" className="ph-try" onClick={() => onOpen(memory.id)}>
-          {t.actionOpen}
-        </button>
-        <form className="ph-note" onSubmit={(e) => void submit(e)}>
-          <Pencil size={16} aria-hidden="true" />
-          <input
-            id={`ph-note-${memory.id}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={L.addContext}
-            aria-label={L.addContextLabel}
-            maxLength={200}
-            disabled={busy}
-          />
-          {draft.trim() && (
-            <button type="submit" className="ph-note-add" disabled={busy}>
-              {L.add}
-            </button>
-          )}
-        </form>
       </div>
     </article>
   );
