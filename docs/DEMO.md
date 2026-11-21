@@ -1,19 +1,25 @@
-# Three-minute demo
+# Three-minute demo video
 
-Uses the live site and a real Instagram account. Prepare before you start: a phone with Instagram signed in, the site open on a laptop or a second phone (https://neophi-4ngyvfbl6a-el.a.run.app), and a public Reel you are happy to show. Do the connect step once beforehand if you want to save time; the code works once and expires after a few minutes.
+Read the **Say** column while recording. Phone-width browser on the left, phone with Instagram on the right if you have one.
+
+**Before you record**
+1. Open https://neophi-4ngyvfbl6a-el.a.run.app in a fresh browser window (a private window gives an empty library).
+2. Have a public Reel ready to share, and Instagram signed in on the phone.
+3. If Instagram is slow or not available, use plan B (below) for steps 3 to 5.
 
 | Time | Show | Say |
 | --- | --- | --- |
-| 0:00 | The landing page | "We save Reels all the time and forget why. Neophi keeps the reason, in your own words." |
-| 0:15 | Tap **Open Neophi**. The empty Feed with **Connect Instagram** | "No account form. You get a private library straight away." |
-| 0:30 | Tap **Connect Instagram**. A one-time code appears | "Connecting Instagram is one message: send this code to our account." |
-| 0:45 | On the phone, DM the code to the account. The site switches to *connected* by itself | "That's it. The site picks it up on its own." |
-| 1:00 | Share the Reel to the account in a DM, then type a reason, for example *Sunday ko banana hai, for Maa* | "Now I just share a Reel the way I would to a friend, and say why." |
-| 1:20 | Wait for the save to arrive in the Feed (about a minute; the toast says *Saved from Instagram*). Meanwhile, open Settings → Instagram | "Behind the scenes: Meta calls Cloud Run, we check the signature, queue it in Firestore, and a worker reads it with Gemini on Vertex AI." |
-| 1:50 | Open the save | "My words first, exactly as I typed them, Hinglish and all." |
-| 2:05 | Scroll to the AI reading | "The AI part is separate and labelled. It says what kind of Reel this is and the facts that matter, and each one points to where it came from. If it is not sure, it says so. It never writes my reason for me." |
-| 2:25 | Open Journey (or Library) | "Everything I saved, in one place, grouped by what it is for." |
-| 2:40 | Search in Hindi or Hinglish for the reason, for example *maa ke liye* | "And I can find it again by why I saved it, in my own language." |
-| 2:55 | Settings → Delete all (do not confirm) | "And it's mine: disconnect Instagram or delete everything here." |
+| 0:00 | Landing page | "When you save a Reel, you make a small decision for your future self: I need this, or this is for Sunday. Later that decision is gone. Neophi keeps it." |
+| 0:15 | **Start saving** → empty Feed with the three steps | "No sign-up form. You get a private library straight away." |
+| 0:25 | **Connect Instagram** → the code | "Connecting Instagram is one message. I send this code to the Neophi account." |
+| 0:40 | Phone: DM the code. Back on the site it shows connected | "The site picks it up by itself." |
+| 0:55 | Phone: share the Reel to the account, then type a few words, e.g. *Sunday ko banana hai, Maa ke liye* | "Now I share a Reel the way I'd send it to a friend, and say why, in my own words." |
+| 1:10 | The save arrives on the Feed (30 to 75 s; talk over the wait) | "Behind it: Instagram calls Cloud Run, we check the signature, queue it in Firestore, and a worker reads it with Gemini on Vertex AI." |
+| 1:35 | Open the save | "My words first, exactly as I typed them, Hinglish and all." |
+| 1:50 | Scroll to **What this is** and **Key points** | "The AI part is separate and labelled. It says what this is and pulls out the useful points, and each one shows where it came from. If the caption is just hashtags, it says so and ignores it. It never guesses why I saved it." |
+| 2:15 | **Journey** tab | "Everything I saved, in one tree that grows as I save, grouped by what it's for." |
+| 2:30 | Search: *laal shirt wala dance* (or words from your note) | "And I find it again by why I saved it, in my own language." |
+| 2:45 | Settings → **Delete everything** (cancel at the prompt) | "It's mine: disconnect Instagram, export, or delete everything here." |
+| 2:55 | Back to the Feed | "Neophi. Remember why you saved it." |
 
-If a step fails live: the save takes up to two minutes when the worker is between runs; a shared Reel often arrives without the video, in which case the reading uses the caption and your note, which is expected.
+**Plan B (no Instagram, or it's slow):** in the connect sheet, scroll to **No Instagram account handy?**, pick *Recipe with real steps*, type your words, and press **Send a simulated share**. It lands in your own library labelled *Simulated Instagram share*, and the rest of the script is the same. Say: "For the demo I'll use the simulated share; it goes through the same pipeline."
