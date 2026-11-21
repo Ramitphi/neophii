@@ -1474,6 +1474,8 @@ body {
 .jy-leaf-ai {
   font-size: 0.85rem;
   opacity: 0.8;
+}
+
 /* Try without Instagram, inside the connect sheet */
 .ig-demo {
   display: grid;
