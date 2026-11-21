@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saved (mock for the demo video)</title>
+<style>
+  /* A plain mock of a saved-posts grid for filming Part 1. No real app branding, no real content. */
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #f5f5f5; font: 15px/1.4 -apple-system, system-ui, sans-serif; }
+  header { position: sticky; top: 0; display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #000; border-bottom: 1px solid #222; z-index: 2; }
+  header b { font-size: 18px; }
+  .tabs { display: flex; gap: 8px; padding: 10px 16px; }
+  .tabs span { padding: 6px 12px; border-radius: 8px; background: #1c1c1c; font-size: 13px; }
+  .tabs span.on { background: #f5f5f5; color: #000; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .grid div { aspect-ratio: 9 / 16; background: linear-gradient(160deg, var(--a), var(--b)); position: relative; cursor: pointer; }
+  .grid div::after { content: '▶'; position: absolute; left: 6px; bottom: 4px; font-size: 11px; opacity: 0.7; }
+  .label { position: fixed; top: 10px; right: 10px; z-index: 3; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.12); font-size: 11px; letter-spacing: 0.04em; }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 40px); opacity: 0; transition: 0.3s; padding: 12px 18px; border-radius: 12px; background: #262626; box-shadow: 0 8px 24px rgba(0,0,0,0.6); font-size: 14px; white-space: nowrap; z-index: 3; }
+  .toast.show { transform: translate(-50%, 0); opacity: 1; }
+</style>
+</head>
+<body>
+  <div class="label">Dramatisation</div>
+  <header><span>←</span><b>Saved</b></header>
+  <div class="tabs"><span class="on">All posts</span><span>Audio</span><span>Places</span></div>
+  <div class="grid" id="grid"></div>
+  <div class="toast" id="toast">Couldn't find this Reel</div>
+<script>
+  // 60 grey-ish thumbnails with slight variation, so nothing in the grid tells you what each save was.
+  const grid = document.getElementById('grid');
+  for (let i = 0; i < 60; i++) {
+    const d = document.createElement('div');
+    const g = 30 + ((i * 37) % 40);
+    d.style.setProperty('--a', `rgb(${g},${g},${g + 6})`);
+    d.style.setProperty('--b', `rgb(${g + 18},${g + 14},${g + 10})`);
+    d.onclick = showToast;
+    grid.appendChild(d);
+  }
+  const toast = document.getElementById('toast');
+  let t;
+  function showToast() {
+    toast.classList.add('show');
+    clearTimeout(t);
+    t = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+  // Press "t" to show the toast without tapping (handy while screen-recording).
+  addEventListener('keydown', (e) => { if (e.key === 't') showToast(); });
+</script>
+</body>
+</html>
