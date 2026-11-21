@@ -101,6 +101,9 @@ export interface InstagramStrings {
   dismiss: string;
   fromInstagram: string;
   manage: string;
+  moreTitle: string;
+  moreBody: string;
+  soon: string;
   returnHint: string;
   howTitle: string;
   how: [string, string, string];
@@ -184,6 +187,9 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'Dismiss',
       fromInstagram: 'Saved from Instagram',
       manage: 'Manage',
+      moreTitle: 'More places to save from',
+      moreBody: 'Neophi is built to connect more of the places you save from. These are coming soon.',
+      soon: 'Coming soon',
       howTitle: 'How it works',
       how: ['Connect Instagram once with a short code.', 'Share any Reel to the Neophi account and say why, if you like.', 'See it on Journey with your words first.'],
       returnHint: 'After you send it in Instagram, come back to this tab. Your code stays the same, and the page connects by itself.',
@@ -292,6 +298,9 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'Hatao',
       fromInstagram: 'Instagram se save hua',
       manage: 'Manage karo',
+      moreTitle: 'Aur jagahen jahan se save karte ho',
+      moreBody: 'Neophi aur jagahen bhi jodne ke liye bana hai. Yeh jaldi aa rahe hain.',
+      soon: 'Jaldi aa raha hai',
       howTitle: 'Yeh kaise kaam karta hai',
       how: ['Ek chhote code se Instagram ek baar connect karo.', 'Neophi account ko koi bhi Reel bhejo, aur chaho to kyun likho.', 'Journey mein dekho, tumhare shabd sabse upar.'],
       returnHint: 'Instagram mein bhejne ke baad is tab par wapas aao. Code wahi rahega, aur page apne aap connect ho jaayega.',
@@ -400,6 +409,9 @@ export const FEED_STRINGS: Record<LanguageCode, FeedStrings> = {
       dismiss: 'हटाएँ',
       fromInstagram: 'Instagram से सेव हुआ',
       manage: 'प्रबंधित करें',
+      moreTitle: 'और जगहें जहाँ से आप सेव करते हैं',
+      moreBody: 'Neophi और जगहें जोड़ने के लिए बना है। ये जल्द आ रहे हैं।',
+      soon: 'जल्द आ रहा है',
       howTitle: 'यह कैसे काम करता है',
       how: ['एक छोटे कोड से Instagram एक बार जोड़ें।', 'Neophi अकाउंट को कोई भी रील भेजें, और चाहें तो क्यों लिखें।', 'यात्रा में देखें, आपके शब्द सबसे ऊपर।'],
       returnHint: 'Instagram में भेजने के बाद इस टैब पर लौट आएँ। कोड वही रहेगा, और पन्ना अपने आप जुड़ जाएगा।',

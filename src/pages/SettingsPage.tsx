@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Instagram, Trash2, Upload } from 'lucide-react';
 import { api, type HealthInfo, type InstagramLinkStatus } from '../lib/api';
+import { ComingSoon } from '../components/ComingSoon';
 import { FEED_STRINGS } from './feedStrings';
 import type { StringsTable } from '../lib/i18n';
 import { LANDING } from '../landing/strings';
@@ -81,6 +82,10 @@ export function SettingsPage({
           </div>
         </section>
       )}
+
+      <section className="card">
+        <ComingSoon lang={lang} />
+      </section>
 
       <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h2 className="serif-title" style={{ fontSize: '1.25rem' }}>

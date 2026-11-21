@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink, Instagram, X } from 'lucide-react';
 import { api, type InstagramLinkCode, type InstagramLinkStatus } from '../lib/api';
 import { FEED_STRINGS } from '../pages/feedStrings';
+import { ComingSoon } from './ComingSoon';
 import type { LanguageCode } from '../types/neophi';
 
 const POLL_MS = 3000;
@@ -341,6 +342,8 @@ export function InstagramConnectModal({
             )}
           </section>
         )}
+
+        <ComingSoon lang={lang} compact />
       </div>
     </div>
   );
