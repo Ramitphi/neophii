@@ -1,5 +1,5 @@
 // The save card used on every tab (Feed, Today, Library): the media, the user's exact words first, the title
-// and category with its reason, pills, a labelled AI line, and one row of actions (Open, Later, Done, Copy link).
+// and category with its reason, pills, a labelled AI line, and one row of actions (Open, Done, Copy link).
 // Also the shared actions (Later, Done, add context, copy link) with their toasts.
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -229,13 +229,10 @@ export function MemoryCard({ memory, why, category, pop, lang, t, onOpen, onAct,
       )}
 
       {/* Quick actions under the words; the picture above stays just the Reel. */}
-      {/* One row: Open (the save's page) first, then the quick actions. Context is added on the save's page. */}
+      {/* One row: Open (the save's page) first, then Done and Copy link. Context is added on the save's page. */}
       <div className="ph-actions">
         <button type="button" className="ph-act is-primary" onClick={() => onOpen(memory.id)}>
           {t.actionOpen}
-        </button>
-        <button type="button" className="ph-act" onClick={() => onAct(memory, 'later')}>
-          <Bookmark size={15} aria-hidden="true" /> {L.rail.later}
         </button>
         <button type="button" className="ph-act" onClick={() => onAct(memory, 'done')}>
           <Check size={15} aria-hidden="true" /> {L.rail.done}
