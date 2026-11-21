@@ -3058,7 +3058,7 @@ html.lp-root[data-theme='light'] {
   box-shadow: 4px 4px 0 var(--acc, var(--violet));
 }
 
-/* Keep Open, Later, Done and Copy link on one line, even on a narrow phone */
+/* Keep Open, Done and Copy link on one line, even on a narrow phone */
 .ph-actions {
   flex-wrap: nowrap;
   gap: 6px;
@@ -3074,11 +3074,8 @@ html.lp-root[data-theme='light'] {
 :is(.lp, .ph-app) .ph-actions .ph-act.is-primary {
   padding-inline: 14px;
 }
-.ph-card {
-  container: ph-card / inline-size;
-}
-@container ph-card (max-width: 330px) {
-  :is(.lp, .ph-app) .ph-actions .ph-act svg {
-    display: none;
-  }
+
+/* The landing demo phone has four tabs (Today, Search, Save, Done) */
+.ph-nav.is-four {
+  grid-template-columns: repeat(4, 1fr);
 }

@@ -1,11 +1,9 @@
 // A phone-style feed of saved Reels. Tabs are categories built from the saver's own words; each card has
-// the words it was saved with and one row of actions (open, later, done, copy link).
+// the words it was saved with and one row of actions (open, done, copy link).
 // Videos are not fetched or described. No counts are shown, because none are measured.
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   BadgeCheck,
-  Bookmark,
-  BookmarkCheck,
   Car,
   Check,
   CircleCheck,
@@ -27,7 +25,7 @@ import { POPS, popVars, type Pop } from './pop';
 import type { LandingStrings } from './strings';
 
 type CatId = 'cars' | 'investing' | 'entertainment' | 'unsorted';
-type View = 'feed' | 'search' | 'later' | 'done';
+type View = 'feed' | 'search' | 'done';
 
 interface Category {
   id: CatId;
@@ -44,7 +42,6 @@ interface Save {
   notes: string[];
   chip: string;
   cat: CatId;
-  later: boolean;
   done: boolean;
   justNow: boolean;
 }
@@ -61,9 +58,9 @@ const CHIP_FOR: Record<CatId, string> = { cars: 'Buy', investing: 'Learn', enter
 
 // Real links, stored without share-tracking parameters, with the words they were saved with.
 const INITIAL: Save[] = [
-  { id: 'Df1HBXLTOHV', url: 'https://www.instagram.com/reel/Df1HBXLTOHV/', platform: 'Instagram', notes: ['car to buy'], chip: 'Buy', cat: 'cars', later: false, done: false, justNow: false },
-  { id: 'Df9ABiAxjL4', url: 'https://www.instagram.com/reel/Df9ABiAxjL4/', platform: 'Instagram', notes: ['investment advice'], chip: 'Learn', cat: 'investing', later: false, done: false, justNow: false },
-  { id: 'DdMJHsmooUM', url: 'https://www.instagram.com/reel/DdMJHsmooUM/', platform: 'Instagram', notes: ['entertainment'], chip: 'Just remember', cat: 'entertainment', later: false, done: false, justNow: false },
+  { id: 'Df1HBXLTOHV', url: 'https://www.instagram.com/reel/Df1HBXLTOHV/', platform: 'Instagram', notes: ['car to buy'], chip: 'Buy', cat: 'cars', done: false, justNow: false },
+  { id: 'Df9ABiAxjL4', url: 'https://www.instagram.com/reel/Df9ABiAxjL4/', platform: 'Instagram', notes: ['investment advice'], chip: 'Learn', cat: 'investing', done: false, justNow: false },
+  { id: 'DdMJHsmooUM', url: 'https://www.instagram.com/reel/DdMJHsmooUM/', platform: 'Instagram', notes: ['entertainment'], chip: 'Just remember', cat: 'entertainment', done: false, justNow: false },
 ];
 
 const catOf = (id: CatId) => CATEGORIES.find((c) => c.id === id)!;
@@ -97,7 +94,7 @@ function SaveCard({
 }: {
   save: Save;
   s: LandingStrings;
-  onToggle: (id: string, key: 'later' | 'done') => void;
+  onToggle: (id: string, key: 'done') => void;
   onCopy: (url: string) => void;
 }) {
   const f = s.feed;
@@ -153,10 +150,6 @@ function SaveCard({
         <a className="ph-act is-primary" href={save.url} target="_blank" rel="noopener noreferrer">
           {f.openReel}
         </a>
-        <button type="button" className={`ph-act ${save.later ? 'is-on' : ''}`} aria-pressed={save.later} onClick={() => onToggle(save.id, 'later')}>
-          {save.later ? <BookmarkCheck size={15} aria-hidden="true" /> : <Bookmark size={15} aria-hidden="true" />}{' '}
-          {save.later ? f.rail.inLater : f.rail.later}
-        </button>
         <button type="button" className={`ph-act ${save.done ? 'is-on' : ''}`} aria-pressed={save.done} onClick={() => onToggle(save.id, 'done')}>
           <Check size={15} aria-hidden="true" /> {save.done ? f.rail.undo : f.rail.done}
         </button>
@@ -191,7 +184,6 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
 
   const shown = saves.filter((x) => {
     if (tab !== 'all' && x.cat !== tab) return false;
-    if (view === 'later') return x.later;
     if (view === 'done') return x.done;
     if (view === 'search') {
       const q = query.trim().toLowerCase();
@@ -206,7 +198,7 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
     scrollRef.current?.scrollTo({ top: 0 });
   };
 
-  const toggle = (id: string, key: 'later' | 'done') =>
+  const toggle = (id: string, key: 'done') =>
     setSaves((all) => all.map((x) => (x.id === id ? { ...x, [key]: !x[key] } : x)));
 
   const copy = async (url: string) => {
@@ -218,7 +210,7 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
     }
   };
 
-  const empty = view === 'later' ? f.empty.later : view === 'done' ? f.empty.done : view === 'search' && query.trim() ? f.empty.search : f.empty.feed;
+  const empty = view === 'done' ? f.empty.done : view === 'search' && query.trim() ? f.empty.search : f.empty.feed;
 
   return (
     <div className="ph-frame" role="region" aria-label={f.phoneLabel}>
@@ -286,13 +278,12 @@ export function FeedDemo({ s }: { s: LandingStrings }) {
           </div>
         )}
 
-        <nav className="ph-nav" aria-label={f.phoneLabel}>
+        <nav className="ph-nav is-four" aria-label={f.phoneLabel}>
           {(
             [
               { id: 'feed', label: f.nav.today, Icon: Home },
               { id: 'search', label: f.nav.search, Icon: Search },
               { id: 'save', label: f.nav.save, Icon: Plus },
-              { id: 'later', label: f.nav.later, Icon: Bookmark },
               { id: 'done', label: f.nav.done, Icon: CircleCheck },
             ] as const
           ).map((n) => (
@@ -349,7 +340,6 @@ function AddSheet({ s, onClose, onSave }: { s: LandingStrings; onClose: () => vo
       notes: [note],
       chip: CHIP_FOR[cat],
       cat,
-      later: false,
       done: false,
       justNow: true,
     });
